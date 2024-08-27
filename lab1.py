@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
@@ -141,25 +140,59 @@ def most_frequent_attr_value(attr_list, attribute):
   return num
 
 
+########################################################
+import numpy as np
 
+def entropy(S):
+    """
+    Calculates the entropy of a set of labels.
 
+    Args:
+        S (numpy.ndarray): A vector of class labels.
 
+    Returns:
+        float: The entropy of the label set.
+    """
+    # bincount -> count number of occurrences of each value in array of non-negative ints.
+    counts = np.bincount(S)
+    probabilities = counts / len(S)
 
+    return -np.sum(probabilities * np.log2(probabilities + 1e-9))
 
+def information_gain(X, S, attribute_index):
+    """
+    Calculates the information gain from splitting the data based on a attribute.
 
+    Args:
+        X (numpy.ndarray): Matrix of attributes.
+        S (numpy.ndarray): Vector of class labels.
+        attribute_index (int): Index of the attribute to evaluate.
 
+    Returns:
+        float: The information gain from splitting on the attribute.
+    """
+    original_entropy = entropy(S)
 
+    # unique -> returns the sorted unique elements of X
+    # return_counts=True: also return the number of times each unique item appears in X
+    unique_values, counts = np.unique(X[:, attribute_index], return_counts=True)
+    probabilities = counts / len(X)
 
+    return original_entropy - np.sum(probabilities * [entropy(S[X[:, attribute_index] == value]) for value in unique_values])
 
+def best_attribute_to_split(X, S):
+    """
+    Finds the index of the attribute that provides the highest information gain.
 
+    Args:
+        X (numpy.ndarray): Matrix of attributes.
+        S (numpy.ndarray): Vector of class labels.
 
-
-
-
-
-
-# def seleccion_de_atributo
-#
-
-# def calcular_entropia
-#
+    Returns:
+        int: The index of the attribute that provides the highest information gain.
+    """
+    # shape -> returns the shape of the array
+    # we use the index 1 inside the shape to get the number of columns (attributes on this case)
+    num_attributes = X.shape[1]
+    gains = [information_gain(X, S, i) for i in range(num_attributes)]
+    return np.argmax(gains)
