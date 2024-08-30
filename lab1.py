@@ -1,6 +1,6 @@
 
-import pandas as pd
-import numpy as np
+import pandas
+import numpy
 
 def id3(dataset, attributes, target_attribute, parent_node_class = None):
   """
@@ -9,7 +9,7 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
   La implementación soportada por id3 hace que el target_attribute solo pueda tener valor ser 1 o 0 en el dataset
 
   Args:
-      dataset (pd.DataFrame): El conjunto de datos de entrada, un DataFrame de pandas que contiene los datos.
+      dataset (pandas.DataFrame): El conjunto de datos de entrada, un DataFrame de pandas que contiene los datos.
       attributes (list): Lista de atributos disponibles para realizar divisiones (sin incluir a target_attribute).
       target_attribute (str): El nombre de la columna que contiene la etiqueta o clase objetivo.
       parent_node_class (str, opcional): La clase del nodo padre, utilizada en caso de que no queden más atributos.
@@ -18,9 +18,9 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
       dict o str: Un árbol de decisión representado como un diccionario anidado, o un valor de clase.
   """
 
-  if len(np.unique(dataset[target_attribute])) == 1:
+  if len(numpy.unique(dataset[target_attribute])) == 1:
     # Si todos los ejemplos tienen el mismo valor → etiquetar con ese valor
-    return str(np.unique(dataset[target_attribute])[0])
+    return str(numpy.unique(dataset[target_attribute])[0])
 
   elif len(attributes) == 0:
     # Si no me quedan atributos → etiquetar con el valor más común
@@ -39,7 +39,7 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
     remaining_attributes = attributes.copy()
     remaining_attributes.remove(best_attribute)
 
-    for value in np.unique(dataset[best_attribute]):
+    for value in numpy.unique(dataset[best_attribute]):
       sub_data = dataset.where(dataset[best_attribute] == value).dropna()
       subtree = id3(sub_data, remaining_attributes, target_attribute, parent_node_class)
       tree[best_attribute][value] = subtree
@@ -51,13 +51,13 @@ def determine_majority_class(dataset, target_attribute):
   Determina la clase mayoritaria en el conjunto de datos.
 
   Args:
-      dataset (pd.DataFrame): El conjunto de datos de entrada.
+      dataset (pandas.DataFrame): El conjunto de datos de entrada.
       target_attribute (str): El nombre de la columna que contiene las etiquetas o clases objetivo.
 
   Returns:
       str: La clase mayoritaria.
   """
-  return np.unique(dataset[target_attribute])[np.argmax(np.unique(dataset[target_attribute], return_counts = True)[1])]
+  return numpy.unique(dataset[target_attribute])[numpy.argmax(numpy.unique(dataset[target_attribute], return_counts = True)[1])]
 
 def entropy(S):
   """
@@ -70,10 +70,10 @@ def entropy(S):
       float: La entropía del conjunto de etiquetas.
   """
   # bincounts -> cuenta el número de ocurrencias de cada valor en el array de etiquetas.
-  counts = np.bincount(S)
+  counts = numpy.bincount(S)
   probabilities = counts / len(S)
 
-  return -np.sum(probabilities * np.log2(probabilities + 1e-9))
+  return -numpy.sum(probabilities * numpy.log2(probabilities + 1e-9))
 
 def information_gain(X, S, attribute_index):
   """
@@ -90,11 +90,11 @@ def information_gain(X, S, attribute_index):
   original_entropy = entropy(S)
 
   # unique_values -> encuentra los valores únicos del atributo, y counts su frecuencia (debido a return_counts=True).
-  unique_values, counts = np.unique(X[:, attribute_index], return_counts = True)
+  unique_values, counts = numpy.unique(X[:, attribute_index], return_counts = True)
   probabilities = counts / len(X)
 
   # Resta la entropía ponderada de cada división de atributo de la entropía original para obtener la ganancia de información.
-  return original_entropy - np.sum(probabilities * [entropy(S[X[:, attribute_index] == value]) for value in unique_values])
+  return original_entropy - numpy.sum(probabilities * [entropy(S[X[:, attribute_index] == value]) for value in unique_values])
 
 def best_attribute_to_split(X, S):
   """
@@ -112,7 +112,7 @@ def best_attribute_to_split(X, S):
   # Ganancia de información para cada atributo.
   gains = [information_gain(X, S, i) for i in range(num_attributes)]
   # Índice del atributo con mayor ganancia de información.
-  return np.argmax(gains)
+  return numpy.argmax(gains)
 
 ####################################################################################################
 
@@ -125,13 +125,13 @@ data = {
     'Attribute2': ['X', 'X', 'Y', 'Y', 'Y'],
     'Target': [1, 1, 0, 0, 0]
 }
-df = pd.DataFrame(data)
+df = pandas.DataFrame(data)
 
 # Guardar el DataFrame en un archivo CSV
 df.to_csv('example_data.csv', index=False)
 
 # Cargar el archivo CSV
-dataset = pd.read_csv('example_data.csv')
+dataset = pandas.read_csv('example_data.csv')
 
 # Definir los atributos y el atributo objetivo
 attributes = ['Attribute1', 'Attribute2']
