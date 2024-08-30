@@ -2,23 +2,16 @@
 import pandas as pd
 import numpy as np
 
-# La primer llamada a id3 debería ser: id3(dataset, attributes, target_attribute)
-#
-# dataset: Es nuestro dataset, un DataFrame de pandas que contiene los datos.
-# attributes: Es la lista de atributos que el algoritmo utilizará para dividir
-#             los datos (no debe incluir a target_attribute).
-# target_attribute: Es el nombre de la columna que contiene la clase o etiqueta que queremos predecir.
-#
-# La implementación soportada por id3 hace que el target_attribute solo pueda tener valor ser 1 o 0 en el dataset
-
 def id3(dataset, attributes, target_attribute, parent_node_class = None):
   """
   Implementación del algoritmo ID3 para construir un árbol de decisión.
+  La primer llamada a id3 debería ser: id3(dataset, attributes, target_attribute)
+  La implementación soportada por id3 hace que el target_attribute solo pueda tener valor ser 1 o 0 en el dataset
 
   Args:
-      dataset (pd.DataFrame): El conjunto de datos de entrada.
-      attributes (list): Lista de atributos disponibles para realizar divisiones.
-      target_attribute (str): El nombre de la columna que contiene las etiquetas o clases objetivo.
+      dataset (pd.DataFrame): El conjunto de datos de entrada, un DataFrame de pandas que contiene los datos.
+      attributes (list): Lista de atributos disponibles para realizar divisiones (sin incluir a target_attribute).
+      target_attribute (str): El nombre de la columna que contiene la etiqueta o clase objetivo.
       parent_node_class (str, opcional): La clase del nodo padre, utilizada en caso de que no queden más atributos.
 
   Returns:
