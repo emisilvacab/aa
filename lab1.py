@@ -121,15 +121,15 @@ def best_attribute_to_split(X, S):
 # TODO: Remover cuando se empiecen a usar el csv real
 
 # Crear un DataFrame de ejemplo
-data = {
-    'Attribute1': ['A', 'A', 'B', 'B', 'A'],
-    'Attribute2': ['X', 'X', 'Y', 'Y', 'Y'],
-    'Target': [1, 1, 0, 0, 0]
-}
-example_df = pandas.DataFrame(data)
+# data = {
+#     'Attribute1': ['A', 'A', 'B', 'B', 'A'],
+#     'Attribute2': ['X', 'X', 'Y', 'Y', 'Y'],
+#     'Target': [1, 1, 0, 0, 0]
+# }
+#example_df = pandas.DataFrame(data)
 
 # Guardar el DataFrame en un archivo CSV
-example_df.to_csv('example_data.csv', index=False)
+#example_df.to_csv('example_data.csv', index=False)
 
 # Cargar el archivo CSV
 dataset = pandas.read_csv('lab1_dataset.csv')
