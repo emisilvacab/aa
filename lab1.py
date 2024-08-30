@@ -70,6 +70,7 @@ def entropy(S):
       float: La entropía del conjunto de etiquetas.
   """
   # bincounts -> cuenta el número de ocurrencias de cada valor en el array de etiquetas.
+  S = S.astype(int)
   counts = numpy.bincount(S)
   probabilities = counts / len(S)
 
@@ -117,25 +118,17 @@ def best_attribute_to_split(X, S):
 ####################################################################################################
 
 # SCRIPT DE PRUEBA
-# TODO: Remover cuando se empiecen a usar el csv real
-
-# Crear un DataFrame de ejemplo
-data = {
-    'Attribute1': ['A', 'A', 'B', 'B', 'A'],
-    'Attribute2': ['X', 'X', 'Y', 'Y', 'Y'],
-    'Target': [1, 1, 0, 0, 0]
-}
-df = pandas.DataFrame(data)
-
-# Guardar el DataFrame en un archivo CSV
-df.to_csv('example_data.csv', index=False)
 
 # Cargar el archivo CSV
-dataset = pandas.read_csv('example_data.csv')
+dataset = pandas.read_csv('lab1_dataset.csv')
+dataset = dataset.drop('pidnum', axis='columns')
+print(dataset)
 
 # Definir los atributos y el atributo objetivo
-attributes = ['Attribute1', 'Attribute2']
-target_attribute = 'Target'
+attributes = dataset.columns.values.tolist()
+attributes.remove('cid')
+
+target_attribute = 'cid'
 
 # Llamar a la función id3 para construir el árbol
 tree = id3(dataset, attributes, target_attribute)
