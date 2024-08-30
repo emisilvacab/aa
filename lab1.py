@@ -12,6 +12,19 @@ import numpy as np
 # La implementación soportada por id3 hace que el target_attribute solo pueda tener valor ser 1 o 0 en el dataset
 
 def id3(dataset, attributes, target_attribute, parent_node_class = None):
+  """
+  Implementación del algoritmo ID3 para construir un árbol de decisión.
+
+  Args:
+      dataset (pd.DataFrame): El conjunto de datos de entrada.
+      attributes (list): Lista de atributos disponibles para realizar divisiones.
+      target_attribute (str): El nombre de la columna que contiene las etiquetas o clases objetivo.
+      parent_node_class (str, opcional): La clase del nodo padre, utilizada en caso de que no queden más atributos.
+
+  Returns:
+      dict o str: Un árbol de decisión representado como un diccionario anidado, o un valor de clase.
+  """
+
   if len(np.unique(dataset[target_attribute])) == 1:
     # Si todos los ejemplos tienen el mismo valor → etiquetar con ese valor
     return str(np.unique(dataset[target_attribute])[0])
@@ -41,19 +54,29 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
     return tree
 
 def determine_majority_class(dataset, target_attribute):
+  """
+  Determina la clase mayoritaria en el conjunto de datos.
+
+  Args:
+      dataset (pd.DataFrame): El conjunto de datos de entrada.
+      target_attribute (str): El nombre de la columna que contiene las etiquetas o clases objetivo.
+
+  Returns:
+      str: La clase mayoritaria.
+  """
   return np.unique(dataset[target_attribute])[np.argmax(np.unique(dataset[target_attribute], return_counts = True)[1])]
 
 def entropy(S):
   """
-  Calculates the entropy of a set of labels.
+  Calcula la entropía de un conjunto de etiquetas.
 
   Args:
-      S (numpy.ndarray): A vector of class labels.
+      S (numpy.ndarray): Un vector de etiquetas de clase.
 
   Returns:
-      float: The entropy of the label set.
+      float: La entropía del conjunto de etiquetas.
   """
-  # bincount -> count number of occurrences of each value in array of non-negative ints.
+  # bincounts -> cuenta el número de ocurrencias de cada valor en el array de etiquetas.
   counts = np.bincount(S)
   probabilities = counts / len(S)
 
@@ -61,40 +84,41 @@ def entropy(S):
 
 def information_gain(X, S, attribute_index):
   """
-  Calculates the information gain from splitting the data based on a attribute.
+  Calcula la ganancia de información al dividir los datos basado en un atributo.
 
   Args:
-      X (numpy.ndarray): Matrix of attributes.
-      S (numpy.ndarray): Vector of class labels.
-      attribute_index (int): Index of the attribute to evaluate.
+      X (numpy.ndarray): Matriz de atributos.
+      S (numpy.ndarray): Vector de etiquetas de clase.
+      attribute_index (int): Índice del atributo a evaluar.
 
   Returns:
-      float: The information gain from splitting on the attribute.
+      float: La ganancia de información al dividir en el atributo.
   """
   original_entropy = entropy(S)
 
-  # unique -> returns the sorted unique elements of X
-  # return_counts=True: also return the number of times each unique item appears in X
+  # unique_values -> encuentra los valores únicos del atributo, y counts su frecuencia (debido a return_counts=True).
   unique_values, counts = np.unique(X[:, attribute_index], return_counts = True)
   probabilities = counts / len(X)
 
+  # Resta la entropía ponderada de cada división de atributo de la entropía original para obtener la ganancia de información.
   return original_entropy - np.sum(probabilities * [entropy(S[X[:, attribute_index] == value]) for value in unique_values])
 
 def best_attribute_to_split(X, S):
   """
-  Finds the index of the attribute that provides the highest information gain.
+  Encuentra el índice del atributo que proporciona la mayor ganancia de información.
 
   Args:
-      X (numpy.ndarray): Matrix of attributes.
-      S (numpy.ndarray): Vector of class labels.
+      X (numpy.ndarray): Matriz de atributos.
+      S (numpy.ndarray): Vector de etiquetas de clase.
 
   Returns:
-      int: The index of the attribute that provides the highest information gain.
+      int: El índice del atributo que proporciona la mayor ganancia de información.
   """
-  # shape -> returns the shape of the array
-  # we use the index 1 inside the shape to get the number of columns (attributes on this case)
+  # Número de atributos (columnas) en X.
   num_attributes = X.shape[1]
+  # Ganancia de información para cada atributo.
   gains = [information_gain(X, S, i) for i in range(num_attributes)]
+  # Índice del atributo con mayor ganancia de información.
   return np.argmax(gains)
 
 ####################################################################################################
