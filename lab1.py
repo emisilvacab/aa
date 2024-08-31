@@ -1,6 +1,14 @@
 
 import pandas
 import numpy
+from sklearn import preprocessing, model_selection, tree, metrics
+
+def load_CSV_dataset():
+  DATASET_FILE = "./lab1_dataset.csv"
+  leaded_dataset = pandas.read_csv(DATASET_FILE, sep=",", header=0)
+  leaded_dataset = leaded_dataset.drop('pidnum', axis='columns')
+  return leaded_dataset
+
 
 def id3(dataset, attributes, target_attribute, parent_node_class = None):
   """
