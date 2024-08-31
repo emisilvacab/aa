@@ -1,6 +1,8 @@
-
 import pandas
 import numpy
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
 
 def id3(dataset, attributes, target_attribute, parent_node_class = None):
   """
@@ -117,12 +119,49 @@ def best_attribute_to_split(X, S):
 
 ####################################################################################################
 
+def train_model(model, dataset_train, target_train):
+  """
+  Entrena un modelo de machine learning utilizando un conjunto de datos de entrenamiento.
+
+  Args:
+      model: Un modelo de aprendizaje automático de scikit-learn (por ejemplo, RandomForestClassifier, DecisionTreeClassifier, etc.)
+      dataset_train (pd.DataFrame o np.ndarray): El conjunto de características (atributos) para el entrenamiento.
+      target_train (pd.Series o np.ndarray): El vector de etiquetas (target) correspondiente al conjunto de entrenamiento.
+  """
+  model.fit(dataset_train, target_train)
+
+def evaluate_model(model, dataset_test, target_test):
+  """
+  Evalúa el rendimiento de un modelo de machine learning utilizando un conjunto de datos de prueba.
+
+  Args:
+      model: Un modelo de aprendizaje automático entrenado de scikit-learn.
+      dataset_test (pd.DataFrame o np.ndarray): El conjunto de características (atributos) para la evaluación.
+      target_test (pd.Series o np.ndarray): El vector de etiquetas (target) correspondiente al conjunto de prueba.
+
+  Returns:
+      accuracy (float): La precisión del modelo en el conjunto de prueba.
+      classification_report (str): Un informe detallado de clasificación que incluye métricas como precisión, recall y f1-score.
+  """
+  target_pred = model.predict(dataset_test)
+
+  # Evaluar el rendimiento del modelo
+  accuracy = accuracy_score(target_test, target_pred)
+  report = classification_report(target_test, target_pred)
+
+  print(f"Accuracy: {accuracy}")
+  print("Classification Report:")
+  print(report)
+
+  return accuracy, report
+
+####################################################################################################
+
 # SCRIPT DE PRUEBA
 
 # Cargar el archivo CSV
 dataset = pandas.read_csv('lab1_dataset.csv')
 dataset = dataset.drop('pidnum', axis='columns')
-print(dataset)
 
 # Definir los atributos y el atributo objetivo
 attributes = dataset.columns.values.tolist()
@@ -130,8 +169,18 @@ attributes.remove('cid')
 
 target_attribute = 'cid'
 
-# Llamar a la función id3 para construir el árbol
-tree = id3(dataset, attributes, target_attribute)
+# Dividir los datos en conjuntos de entrenamiento y prueba
+dataset_train, dataset_test, target_train, target_test = train_test_split(dataset[attributes], dataset[target_attribute], test_size=0.2, random_state=42)
 
-# Imprimir el árbol de decisión generado
-print(tree)
+# ID3
+id3_model = id3(dataset, attributes, target_attribute)
+print(id3_model)
+
+# train_model(id3_model, dataset_train, target_train)
+# _accuracy, _report = evaluate_model(id3_model, dataset_test, target_test)
+
+# RandomForestClassifier
+rfc_model = RandomForestClassifier(n_estimators=100, random_state=42)  # n_estimators es el número de árboles en el bosque
+
+train_model(rfc_model, dataset_train, target_train)
+_accuracy, _report = evaluate_model(rfc_model, dataset_test, target_test)
