@@ -1,8 +1,6 @@
 import pandas
 import numpy
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn import ensemble, model_selection, metrics, tree
 
 def id3(dataset, attributes, target_attribute, parent_node_class = None):
   """
@@ -145,9 +143,8 @@ def evaluate_model(model, dataset_test, target_test):
   """
   target_pred = model.predict(dataset_test)
 
-  # Evaluar el rendimiento del modelo
-  accuracy = accuracy_score(target_test, target_pred)
-  report = classification_report(target_test, target_pred)
+  accuracy = metrics.accuracy_score(target_test, target_pred)
+  report = metrics.classification_report(target_test, target_pred)
 
   print(f"Accuracy: {accuracy}")
   print("Classification Report:")
@@ -170,17 +167,30 @@ attributes.remove('cid')
 target_attribute = 'cid'
 
 # Dividir los datos en conjuntos de entrenamiento y prueba
-dataset_train, dataset_test, target_train, target_test = train_test_split(dataset[attributes], dataset[target_attribute], test_size=0.2, random_state=42)
+dataset_train, dataset_test, target_train, target_test = model_selection.train_test_split(dataset[attributes], dataset[target_attribute], test_size=0.2, random_state=42)
+
+
+######## Construccion, entrenamiento y evaluacion de modelos #######
 
 # ID3
 id3_model = id3(dataset, attributes, target_attribute)
+
+print("ID3")
 print(id3_model)
 
 # train_model(id3_model, dataset_train, target_train)
 # _accuracy, _report = evaluate_model(id3_model, dataset_test, target_test)
 
-# RandomForestClassifier
-rfc_model = RandomForestClassifier(n_estimators=100, random_state=42)  # n_estimators es el número de árboles en el bosque
+# DecisionTreeClassifier
+dtc_model = tree.DecisionTreeClassifier(random_state=42)
 
+print("DecisionTreeClassifier")
+train_model(dtc_model, dataset_train, target_train)
+_accuracy, _report = evaluate_model(dtc_model, dataset_test, target_test)
+
+# RandomForestClassifier
+rfc_model = ensemble.RandomForestClassifier(n_estimators=100, random_state=42)  # n_estimators es el número de árboles en el bosque
+
+print("RandomForestClassifier")
 train_model(rfc_model, dataset_train, target_train)
 _accuracy, _report = evaluate_model(rfc_model, dataset_test, target_test)
