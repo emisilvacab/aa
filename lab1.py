@@ -117,9 +117,9 @@ def best_attribute_to_split(X, S):
 
 ####################################################################################################
 
-def train_model(model, dataset_train, target_train):
+def train_sklearn_model(model, dataset_train, target_train):
   """
-  Entrena un modelo de machine learning utilizando un conjunto de datos de entrenamiento.
+  Entrena un modelo de scikit-learn utilizando un conjunto de datos de entrenamiento.
 
   Args:
       model: Un modelo de aprendizaje automático de scikit-learn (por ejemplo, RandomForestClassifier, DecisionTreeClassifier, etc.)
@@ -130,7 +130,7 @@ def train_model(model, dataset_train, target_train):
 
 def evaluate_sklearn_model(model, dataset_test, target_test):
   """
-  Evalúa el rendimiento de un modelo de machine learning utilizando un conjunto de datos de prueba.
+  Evalúa el rendimiento de un modelo de scikit-learn utilizando un conjunto de datos de prueba.
 
   Args:
       model: Un modelo de aprendizaje automático entrenado de scikit-learn.
@@ -228,11 +228,11 @@ evaluate_id3_model(tree_id3, dataset_test, target_test, mcv)
 # DecisionTreeClassifier
 print("DecisionTreeClassifier")
 dtc_model = tree.DecisionTreeClassifier(random_state=42)
-train_model(dtc_model, dataset_train, target_train)
-_accuracy, _report = evaluate_sklearn_model(dtc_model, dataset_test, target_test)
+train_sklearn_model(dtc_model, dataset_train, target_train)
+evaluate_sklearn_model(dtc_model, dataset_test, target_test)
 
 # RandomForestClassifier
 print("RandomForestClassifier")
 rfc_model = ensemble.RandomForestClassifier(n_estimators=100, random_state=42)  # n_estimators es el número de árboles en el bosque
-train_model(rfc_model, dataset_train, target_train)
-_accuracy, _report = evaluate_sklearn_model(rfc_model, dataset_test, target_test)
+train_sklearn_model(rfc_model, dataset_train, target_train)
+evaluate_sklearn_model(rfc_model, dataset_test, target_test)
