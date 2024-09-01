@@ -46,6 +46,38 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
 
     return tree
 
+def set_range_to_value(value, min_value, max_value, ranges_length):
+  if (value <= min_value):
+    # a los valores menores o iguales al maximo se les asigna el primer rango (o sea, el rango 0)
+    range_categorical_value = 0 
+  elif (max_value <= value):
+    # a los valores mayores o iguales al maximo se les asigna el ultimo rango
+    range_categorical_value = ((max_value - min_value) // ranges_length) - 1
+  else:
+    range_categorical_value = (value - min_value) // ranges_length
+  return range_categorical_value
+
+def add_ranges_for_attribute(dataset, attribute_name, max_range_split):
+  max_value_in_attribute = dataset[attribute_name].max()
+  min_value_in_attribute = dataset[attribute_name].min()
+
+  ranges_length = (max_value_in_attribute - min_value_in_attribute) / max_range_split
+
+  dataset[attribute_name] = dataset[attribute_name].apply(set_range_to_value, args=(min_value_in_attribute, max_value_in_attribute, ranges_length))
+
+def preprocessing_with_max_range_split(dataset, max_range_split):
+  attributes_requiring_ranges = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
+  ans_dataset = dataset.copy()
+
+  for attribute in attributes_requiring_ranges:
+    add_ranges_for_attribute(ans_dataset, attribute, max_range_split)
+
+  return ans_dataset
+  
+def id3_with_max_range_split(dataset, max_range_split, attributes, target_attribute, parent_node_class = None):
+  preprocessed_dataset = preprocessing_with_max_range_split(dataset, max_range_split)
+  return id3(preprocessed_dataset, attributes, target_attribute, parent_node_class)
+
 def most_common_value(dataset, target_attribute):
   """
   Determina el valor mas comun del target_attribute en el conjunto de datos.
@@ -218,6 +250,16 @@ mcv = most_common_value(dataset, target_attribute)
 dataset_train, dataset_test, target_train, target_test = model_selection.train_test_split(dataset[attributes], dataset[target_attribute], test_size=0.2, random_state=42)
 
 ######## Construccion, entrenamiento y evaluacion de modelos #######
+
+# ID3 preprocesado con max_range_split
+print("ID3 preprocesado")
+dataset_sp = preprocessing_with_max_range_split(dataset, 3)
+# Dividir los datos en conjuntos de entrenamiento y prueba
+dataset_train_sp, dataset_test_sp, target_train_sp, target_test_sp = model_selection.train_test_split(dataset_sp[attributes], dataset_sp[target_attribute], test_size=0.2, random_state=42)
+
+dataset_train_for_id3 = pandas.concat([dataset_train_sp, target_train_sp], axis=1)
+tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute)
+evaluate_id3_model(tree_id3, dataset_test_sp, target_test_sp, mcv)
 
 # ID3
 print("ID3")
