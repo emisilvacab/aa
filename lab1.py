@@ -20,11 +20,11 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
 
   if len(numpy.unique(dataset[target_attribute])) == 1:
     # Si todos los ejemplos tienen el mismo valor → etiquetar con ese valor
-    return str(dataset[target_attribute])
+    return dataset[target_attribute]
 
   elif len(attributes) == 0:
     # Si no me quedan atributos → etiquetar con el valor más común
-    return str(parent_node_class)
+    return parent_node_class
 
   else:
     # parent_node_class es usado en caso de que no nos quedan mas atributos en la proxima llamada al id3
@@ -35,7 +35,7 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
     index_best_attribute = best_attribute_to_split(dataset_matrix, classes_vector)
     best_attribute = attributes[index_best_attribute]
 
-    tree = {str(best_attribute): {}}
+    tree = {best_attribute: {}}
     remaining_attributes = attributes.copy()
     remaining_attributes.remove(best_attribute)
 
@@ -46,10 +46,23 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
 
     return tree
 
+def most_common_value(dataset, target_attribute):
+  """
+  Determina el valor mas comun del target_attribute en el conjunto de datos.
+
+  Args:
+      dataset (pandas.DataFrame): El conjunto de datos de entrada.
+      target_attribute (str): El nombre de la columna que contiene las etiquetas o clases objetivo.
+
+  Returns:
+      El valor mas comun del target_attribute en el conjunto de datos.
+  """
+  return dataset[target_attribute].mode()[0]
+
 def set_range_to_value(value, min_value, max_value, ranges_length):
   if (value <= min_value):
     # a los valores menores o iguales al maximo se les asigna el primer rango (o sea, el rango 0)
-    range_categorical_value = 0 
+    range_categorical_value = 0
   elif (max_value <= value):
     # a los valores mayores o iguales al maximo se les asigna el ultimo rango
     range_categorical_value = ((max_value - min_value) // ranges_length) - 1
@@ -73,23 +86,10 @@ def preprocessing_with_max_range_split(dataset, max_range_split):
     add_ranges_for_attribute(ans_dataset, attribute, max_range_split)
 
   return ans_dataset
-  
+
 def id3_with_max_range_split(dataset, max_range_split, attributes, target_attribute, parent_node_class = None):
   preprocessed_dataset = preprocessing_with_max_range_split(dataset, max_range_split)
   return id3(preprocessed_dataset, attributes, target_attribute, parent_node_class)
-
-def most_common_value(dataset, target_attribute):
-  """
-  Determina el valor mas comun del target_attribute en el conjunto de datos.
-
-  Args:
-      dataset (pandas.DataFrame): El conjunto de datos de entrada.
-      target_attribute (str): El nombre de la columna que contiene las etiquetas o clases objetivo.
-
-  Returns:
-      El valor mas comun del target_attribute en el conjunto de datos.
-  """
-  return numpy.unique(dataset[target_attribute])[numpy.argmax(numpy.unique(dataset[target_attribute], return_counts = True)[1])]
 
 def entropy(S):
   """
@@ -184,7 +184,7 @@ def evaluate_sklearn_model(model, dataset_test, target_test):
 
   return accuracy, report
 
-def predict_id3(tree, sample):
+def predict_id3(tree, sample, default_value):
   """
   Dado una muestra, predice el valor en cierto arbol generado por nuestro algoritmo id3
   (recordar que el arbol representa una funcion discreta, asi que lo que se esta haciendo
@@ -192,22 +192,27 @@ def predict_id3(tree, sample):
 
   Args:
       tree: Un arbol generado por id3
-      sample: una muestra (por ejemplo una row del dataset)
+      sample: Una muestra (por ejemplo una row del dataset)
+      default_value: Usado para devolverlo en caso de que el tree no pueda predecir la sample.
 
   Returns:
       el valor del target attribute para esa muestra en el arbol tree
   """
 
-  while isinstance(tree, dict):
-    attribute = list(tree.keys())[0]
-    attribute_value = sample[attribute]
+  if isinstance(tree, dict):
+    attribute = next(iter(tree))
+    sample_value = sample[attribute]
 
-    if attribute_value in tree[attribute]:
-      tree = tree[attribute][attribute_value]
+    if sample_value in tree[attribute]:
+      subtree = tree[attribute][sample_value]
+      return predict_id3(subtree, sample, default_value)
     else:
-      return None
-
-  return tree
+      # Si sample_value no puede ser predecido por nuestro modelo devolvemos el default_value
+      return default_value
+  else:
+    if isinstance(tree, pandas.Series):
+      return tree.iloc[0]
+    return tree
 
 def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value):
   """
@@ -220,13 +225,11 @@ def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value):
       most_common_value: valor mas comun en el dataset para el target_attribute
   """
 
-  predictions = [predict_id3(tree_id3, sample) for _, sample in dataset_test.iterrows()]
-  predictions = [p if p is not None else most_common_value for p in predictions]
-  target_test_for_id3 = target_test.astype(str)
+  predictions = [predict_id3(tree_id3, sample, most_common_value) for _, sample in dataset_test.iterrows()]
+  target_test_for_id3 = target_test.astype(int)
 
   accuracy = metrics.accuracy_score(target_test_for_id3, predictions)
-  # Ponemos el most common value para las samples no predecidas
-  report = metrics.classification_report(target_test_for_id3, predictions, zero_division = most_common_value)
+  report = metrics.classification_report(target_test_for_id3, predictions)
 
   print(f"Accuracy: {accuracy}")
   print("Classification Report:")
@@ -252,17 +255,17 @@ dataset_train, dataset_test, target_train, target_test = model_selection.train_t
 ######## Construccion, entrenamiento y evaluacion de modelos #######
 
 # ID3 preprocesado con max_range_split
-print("ID3 preprocesado")
-dataset_sp = preprocessing_with_max_range_split(dataset, 3)
-# Dividir los datos en conjuntos de entrenamiento y prueba
-dataset_train_sp, dataset_test_sp, target_train_sp, target_test_sp = model_selection.train_test_split(dataset_sp[attributes], dataset_sp[target_attribute], test_size=0.2, random_state=42)
+print("ID3 preprocesado con max_range_split")
+dataset_sp = preprocessing_with_max_range_split(dataset, 2)
 
+dataset_train_sp, dataset_test_sp, target_train_sp, target_test_sp = model_selection.train_test_split(dataset_sp[attributes], dataset_sp[target_attribute], test_size=0.2, random_state=42)
 dataset_train_for_id3 = pandas.concat([dataset_train_sp, target_train_sp], axis=1)
+
 tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute)
 evaluate_id3_model(tree_id3, dataset_test_sp, target_test_sp, mcv)
 
-# ID3
-print("ID3")
+# ID3 sin preprocesado
+print("ID3 sin preprocesado")
 dataset_train_for_id3 = pandas.concat([dataset_train, target_train], axis=1)
 tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute)
 evaluate_id3_model(tree_id3, dataset_test, target_test, mcv)
