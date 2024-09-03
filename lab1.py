@@ -2,7 +2,7 @@ import pandas
 import numpy
 from sklearn import ensemble, model_selection, metrics, tree
 
-def id3(dataset, attributes, target_attribute, parent_node_class = None):
+def id3(dataset, attributes, target_attribute, max_range_split = 0, parent_node_class = None):
   """
   Implementación del algoritmo ID3 para construir un árbol de decisión.
   La primer llamada a id3 debería ser: id3(dataset, attributes, target_attribute)
@@ -12,6 +12,7 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
       dataset (pandas.DataFrame): El conjunto de datos de entrada, un DataFrame de pandas que contiene los datos.
       attributes (list): Lista de atributos disponibles para realizar divisiones (sin incluir a target_attribute).
       target_attribute (str): El nombre de la columna que contiene la etiqueta o clase objetivo.
+      max_range_split (int): El número máximo de divisiones o rangos permitidos para los atributos numéricos.
       parent_node_class (str, opcional): La clase del nodo padre, utilizada en caso de que no queden más atributos.
 
   Returns:
@@ -39,12 +40,83 @@ def id3(dataset, attributes, target_attribute, parent_node_class = None):
     remaining_attributes = attributes.copy()
     remaining_attributes.remove(best_attribute)
 
-    for value in numpy.unique(dataset[best_attribute]):
-      sub_data = dataset.where(dataset[best_attribute] == value).dropna()
-      subtree = id3(sub_data, remaining_attributes, target_attribute, parent_node_class)
-      tree[best_attribute][value] = subtree
+    # Verificar si el mejor atributo es numérico y realizar divisiones en rangos
+    if max_range_split != 0 and numpy.issubdtype(dataset[best_attribute].dtype, numpy.number):
+        # Calcular puntos de corte basados en cambios en el valor objetivo
+        cut_points = get_cut_points_based_on_target(dataset[best_attribute], dataset[target_attribute], max_range_split)
+        ranges = numpy.concatenate(([float('-inf')], cut_points, [float('inf')]))
+
+        for i in range(len(ranges) - 1):
+            # Crear subconjunto de datos para el rango actual
+            # valores sub del dataset tal que ranges[i] > sub <= ranges[i+1]
+            sub_data = dataset[(dataset[best_attribute] > ranges[i]) & (dataset[best_attribute] <= ranges[i + 1])]
+
+            if sub_data.empty:
+                subtree = parent_node_class  # Usar clase mayoritaria si el subconjunto está vacío4
+            else:
+                subtree = id3(sub_data, remaining_attributes, target_attribute, max_range_split, parent_node_class)
+
+            # Guardar el subárbol en el nodo actual
+            tree[best_attribute][f"({ranges[i]}, {ranges[i+1]}]"] = subtree
+    else:
+        # Atributo no numérico, manejar normalmente
+        for value in numpy.unique(dataset[best_attribute]):
+          sub_data = dataset.where(dataset[best_attribute] == value).dropna()
+          subtree = id3(sub_data, remaining_attributes, target_attribute, max_range_split, parent_node_class)
+          tree[best_attribute][value] = subtree
 
     return tree
+
+def get_cut_points_based_on_target(data, target, max_range_split):
+  """
+  Calcula los puntos de corte para un atributo numérico basados en cambios de clase en el valor objetivo.
+
+  Args:
+      data (pandas.Series o numpy.ndarray): El atributo numérico a dividir.
+      target (pandas.Series o numpy.ndarray): El vector de etiquetas (valores objetivo).
+      max_range_split (int): El número máximo de divisiones o rangos permitidos.
+
+  Returns:
+      list: Una lista de puntos de corte seleccionados.
+  """
+  # Convertir data y target a numpy arrays para evitar problemas de indexación con pandas
+  data = numpy.array(data)
+  target = numpy.array(target)
+
+  # Ordenar los datos y los objetivos de acuerdo al atributo numérico
+  sorted_indices = numpy.argsort(data)
+  sorted_data = data[sorted_indices]
+  sorted_target = target[sorted_indices]
+
+  # Identificar los puntos donde cambia la clase
+  cut_points = []
+  for i in range(1, len(sorted_data)):
+      if sorted_target[i] != sorted_target[i - 1]:
+          cut_point = (sorted_data[i] + sorted_data[i - 1]) / 2.0  # Promedio de dos valores adyacentes
+          cut_points.append(cut_point)
+
+  # Si hay más puntos de corte que los permitidos, selecciona los más relevantes
+  if len(cut_points) > max_range_split:
+      cut_points = filter_cut_points_based_on_max_range_split(cut_points, max_range_split)
+
+  return cut_points
+
+def filter_cut_points_based_on_max_range_split(cut_points, max_range_split):
+  """
+    Selecciona puntos de corte basados en el número máximo de divisiones permitidas (max_range_split).
+    (Únicamente para max_range_split= 2 o max_range_split=3)
+
+    Args:
+        cut_points (list o np.ndarray): Lista o array de puntos de corte calculados para dividir un atributo numérico.
+        max_range_split (int): Número máximo de divisiones o rangos permitidos para el atributo numérico.
+
+    Returns:
+        list: Lista de puntos de corte seleccionados de acuerdo a max_range_split.
+    """
+  if max_range_split == 2:
+    return [min(cut_points)]
+  else:
+    return [min(cut_points), max(cut_points)]
 
 def most_common_value(dataset, target_attribute):
   """
@@ -155,8 +227,8 @@ def train_sklearn_model(model, dataset_train, target_train):
 
   Args:
       model: Un modelo de aprendizaje automático de scikit-learn (por ejemplo, RandomForestClassifier, DecisionTreeClassifier, etc.)
-      dataset_train (pd.DataFrame o np.ndarray): El conjunto de características (atributos) para el entrenamiento.
-      target_train (pd.Series o np.ndarray): El vector de etiquetas (target) correspondiente al conjunto de entrenamiento.
+      dataset_train (pandas.DataFrame o numpy.ndarray): El conjunto de características (atributos) para el entrenamiento.
+      target_train (pandas.Series o numpy.ndarray): El vector de etiquetas (target) correspondiente al conjunto de entrenamiento.
   """
   model.fit(dataset_train, target_train)
 
@@ -166,8 +238,8 @@ def evaluate_sklearn_model(model, dataset_test, target_test):
 
   Args:
       model: Un modelo de aprendizaje automático entrenado de scikit-learn.
-      dataset_test (pd.DataFrame o np.ndarray): El conjunto de características (atributos) para la evaluación.
-      target_test (pd.Series o np.ndarray): El vector de etiquetas (target) correspondiente al conjunto de prueba.
+      dataset_test (pandas.DataFrame o numpy.ndarray): El conjunto de características (atributos) para la evaluación.
+      target_test (pandas.Series o numpy.ndarray): El vector de etiquetas (target) correspondiente al conjunto de prueba.
 
   Returns:
       accuracy (float): La precisión del modelo en el conjunto de prueba.
@@ -220,8 +292,8 @@ def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value):
 
   Args:
       tree_id3: El arbol devuelto por id3.
-      dataset_test (pd.DataFrame o np.ndarray): El conjunto de características (atributos) para la evaluación.
-      target_test (pd.Series o np.ndarray): El vector de etiquetas (target) correspondiente al conjunto de prueba.
+      dataset_test (pandas.DataFrame o numpy.ndarray): El conjunto de características (atributos) para la evaluación.
+      target_test (pandas.Series o numpy.ndarray): El vector de etiquetas (target) correspondiente al conjunto de prueba.
       most_common_value: valor mas comun en el dataset para el target_attribute
   """
 
@@ -268,6 +340,13 @@ evaluate_id3_model(tree_id3, dataset_test_sp, target_test_sp, mcv)
 print("ID3 sin preprocesado")
 dataset_train_for_id3 = pandas.concat([dataset_train, target_train], axis=1)
 tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute)
+evaluate_id3_model(tree_id3, dataset_test, target_test, mcv)
+
+# ID3 sin preprocesado y con max_range_split=2
+print("ID3 sin preprocesado y max_range_split=2")
+dataset_train_for_id3 = pandas.concat([dataset_train, target_train], axis=1)
+max_range_split=3
+tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute, max_range_split)
 evaluate_id3_model(tree_id3, dataset_test, target_test, mcv)
 
 # DecisionTreeClassifier
