@@ -150,10 +150,6 @@ def preprocessing_with_max_range_split(dataset, max_range_split):
 
   return ans_dataset
 
-def id3_with_max_range_split(dataset, max_range_split, attributes, target_attribute, parent_node_class = None):
-  preprocessed_dataset = preprocessing_with_max_range_split(dataset, max_range_split)
-  return id3(preprocessed_dataset, attributes, target_attribute, parent_node_class)
-
 def entropy(S):
   """
   Calcula la entropía de un conjunto de etiquetas.
