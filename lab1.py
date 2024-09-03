@@ -2,6 +2,9 @@ import pandas
 import numpy
 from sklearn import ensemble, model_selection, metrics, tree
 
+ATTRIBUTES_REQUIRING_RANGES = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
+TARGET_ATTRIBUTE = 'cid'
+
 def id3(dataset, attributes, target_attribute, max_range_split = 0, parent_node_class = None):
   """
   Implementación del algoritmo ID3 para construir un árbol de decisión.
@@ -40,30 +43,27 @@ def id3(dataset, attributes, target_attribute, max_range_split = 0, parent_node_
     remaining_attributes = attributes.copy()
     remaining_attributes.remove(best_attribute)
 
-    # Verificar si el mejor atributo es numérico y realizar divisiones en rangos
-    if max_range_split != 0 and numpy.issubdtype(dataset[best_attribute].dtype, numpy.number):
-        # Calcular puntos de corte basados en cambios en el valor objetivo
-        cut_points = get_cut_points_based_on_target(dataset[best_attribute], dataset[target_attribute], max_range_split)
-        ranges = numpy.concatenate(([float('-inf')], cut_points, [float('inf')]))
+    if max_range_split != 0 and (best_attribute in ATTRIBUTES_REQUIRING_RANGES):
+      cut_points = get_cut_points_based_on_target(dataset[best_attribute], dataset[target_attribute], max_range_split)
+      ranges = numpy.concatenate(([float('-inf')], cut_points, [float('inf')]))
 
-        for i in range(len(ranges) - 1):
-            # Crear subconjunto de datos para el rango actual
-            # valores sub del dataset tal que ranges[i] > sub <= ranges[i+1]
-            sub_data = dataset[(dataset[best_attribute] > ranges[i]) & (dataset[best_attribute] <= ranges[i + 1])]
+      for i in range(len(ranges) - 1):
+        # Valores sub del dataset tal que ranges[i] > sub <= ranges[i+1]
+        sub_data = dataset[(dataset[best_attribute] > ranges[i]) & (dataset[best_attribute] <= ranges[i + 1])]
 
-            if sub_data.empty:
-                subtree = parent_node_class  # Usar clase mayoritaria si el subconjunto está vacío4
-            else:
-                subtree = id3(sub_data, remaining_attributes, target_attribute, max_range_split, parent_node_class)
-
-            # Guardar el subárbol en el nodo actual
-            tree[best_attribute][f"({ranges[i]}, {ranges[i+1]}]"] = subtree
-    else:
-        # Atributo no numérico, manejar normalmente
-        for value in numpy.unique(dataset[best_attribute]):
-          sub_data = dataset.where(dataset[best_attribute] == value).dropna()
+        if sub_data.empty:
+          subtree = parent_node_class
+        else:
           subtree = id3(sub_data, remaining_attributes, target_attribute, max_range_split, parent_node_class)
-          tree[best_attribute][value] = subtree
+
+        # (ranges[i], ranges[i+1]]
+        tree[best_attribute][f"{ranges[i]} {ranges[i+1]}"] = subtree
+    else:
+      # Atributo no numérico, manejar normalmente
+      for value in numpy.unique(dataset[best_attribute]):
+        sub_data = dataset.where(dataset[best_attribute] == value).dropna()
+        subtree = id3(sub_data, remaining_attributes, target_attribute, max_range_split, parent_node_class)
+        tree[best_attribute][value] = subtree
 
     return tree
 
@@ -91,13 +91,13 @@ def get_cut_points_based_on_target(data, target, max_range_split):
   # Identificar los puntos donde cambia la clase
   cut_points = []
   for i in range(1, len(sorted_data)):
-      if sorted_target[i] != sorted_target[i - 1]:
-          cut_point = (sorted_data[i] + sorted_data[i - 1]) / 2.0  # Promedio de dos valores adyacentes
-          cut_points.append(cut_point)
+    if sorted_target[i] != sorted_target[i - 1]:
+      cut_point = (sorted_data[i] + sorted_data[i - 1]) / 2.0  # Promedio de dos valores adyacentes
+      cut_points.append(cut_point)
 
   # Si hay más puntos de corte que los permitidos, selecciona los más relevantes
   if len(cut_points) > max_range_split:
-      cut_points = filter_cut_points_based_on_max_range_split(cut_points, max_range_split)
+    cut_points = filter_cut_points_based_on_max_range_split(cut_points, max_range_split)
 
   return cut_points
 
@@ -131,30 +131,21 @@ def most_common_value(dataset, target_attribute):
   """
   return dataset[target_attribute].mode()[0]
 
-def set_range_to_value(value, min_value, max_value, ranges_length):
-  if (value <= min_value):
-    # a los valores menores o iguales al maximo se les asigna el primer rango (o sea, el rango 0)
-    range_categorical_value = 0
-  elif (max_value <= value):
-    # a los valores mayores o iguales al maximo se les asigna el ultimo rango
-    range_categorical_value = ((max_value - min_value) // ranges_length) - 1
-  else:
-    range_categorical_value = (value - min_value) // ranges_length
-  return range_categorical_value
+def set_range_to_value(value, ranges):
+  for i in range(0, len(ranges) - 1):
+    if value < ranges[i + 1]:
+      return i
 
 def add_ranges_for_attribute(dataset, attribute_name, max_range_split):
-  max_value_in_attribute = dataset[attribute_name].max()
-  min_value_in_attribute = dataset[attribute_name].min()
+  cut_points = get_cut_points_based_on_target(dataset[attribute_name], dataset[TARGET_ATTRIBUTE], max_range_split)
+  ranges = numpy.concatenate(([float('-inf')], cut_points, [float('inf')]))
 
-  ranges_length = (max_value_in_attribute - min_value_in_attribute) / max_range_split
-
-  dataset[attribute_name] = dataset[attribute_name].apply(set_range_to_value, args=(min_value_in_attribute, max_value_in_attribute, ranges_length))
+  dataset[attribute_name] = dataset[attribute_name].apply(set_range_to_value, args=(ranges,))
 
 def preprocessing_with_max_range_split(dataset, max_range_split):
-  attributes_requiring_ranges = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
   ans_dataset = dataset.copy()
 
-  for attribute in attributes_requiring_ranges:
+  for attribute in ATTRIBUTES_REQUIRING_RANGES:
     add_ranges_for_attribute(ans_dataset, attribute, max_range_split)
 
   return ans_dataset
@@ -256,7 +247,7 @@ def evaluate_sklearn_model(model, dataset_test, target_test):
 
   return accuracy, report
 
-def predict_id3(tree, sample, default_value):
+def predict_id3(tree, sample, default_value, use_ranges):
   """
   Dado una muestra, predice el valor en cierto arbol generado por nuestro algoritmo id3
   (recordar que el arbol representa una funcion discreta, asi que lo que se esta haciendo
@@ -275,18 +266,24 @@ def predict_id3(tree, sample, default_value):
     attribute = next(iter(tree))
     sample_value = sample[attribute]
 
-    if sample_value in tree[attribute]:
-      subtree = tree[attribute][sample_value]
-      return predict_id3(subtree, sample, default_value)
+    if attribute in ATTRIBUTES_REQUIRING_RANGES and use_ranges:
+      for range_str in tree[attribute]:
+        low, high = map(float, range_str.split())
+        if low < sample_value <= high:
+          subtree = tree[attribute][range_str]
+          return predict_id3(subtree, sample, default_value, use_ranges)
     else:
-      # Si sample_value no puede ser predecido por nuestro modelo devolvemos el default_value
-      return default_value
+      if sample_value in tree[attribute]:
+        subtree = tree[attribute][sample_value]
+        return predict_id3(subtree, sample, default_value, use_ranges)
+
+    return default_value
   else:
     if isinstance(tree, pandas.Series):
       return tree.iloc[0]
     return tree
 
-def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value):
+def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value, use_ranges = True):
   """
   Evalúa el rendimiento del modelo devuelto por nuestro algoritmo id3
 
@@ -297,7 +294,7 @@ def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value):
       most_common_value: valor mas comun en el dataset para el target_attribute
   """
 
-  predictions = [predict_id3(tree_id3, sample, most_common_value) for _, sample in dataset_test.iterrows()]
+  predictions = [predict_id3(tree_id3, sample, most_common_value, use_ranges) for _, sample in dataset_test.iterrows()]
   target_test_for_id3 = target_test.astype(int)
 
   accuracy = metrics.accuracy_score(target_test_for_id3, predictions)
@@ -326,28 +323,23 @@ dataset_train, dataset_test, target_train, target_test = model_selection.train_t
 
 ######## Construccion, entrenamiento y evaluacion de modelos #######
 
-# ID3 preprocesado con max_range_split
-print("ID3 preprocesado con max_range_split")
-dataset_sp = preprocessing_with_max_range_split(dataset, 2)
+## ID3 preprocesado
+print("ID3 preprocesado")
+max_range_split = 3
+dataset_sp = preprocessing_with_max_range_split(dataset, max_range_split)
 
 dataset_train_sp, dataset_test_sp, target_train_sp, target_test_sp = model_selection.train_test_split(dataset_sp[attributes], dataset_sp[target_attribute], test_size=0.2, random_state=42)
 dataset_train_for_id3 = pandas.concat([dataset_train_sp, target_train_sp], axis=1)
 
 tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute)
-evaluate_id3_model(tree_id3, dataset_test_sp, target_test_sp, mcv)
+evaluate_id3_model(tree_id3, dataset_test, target_test, mcv, False)
 
-# ID3 sin preprocesado
-print("ID3 sin preprocesado")
+# ID3 sin preprocesado y con max_range_split
+print(f"ID3 sin preprocesado y max_range_split = {max_range_split}")
 dataset_train_for_id3 = pandas.concat([dataset_train, target_train], axis=1)
-tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute)
-evaluate_id3_model(tree_id3, dataset_test, target_test, mcv)
 
-# ID3 sin preprocesado y con max_range_split=2
-print("ID3 sin preprocesado y max_range_split=2")
-dataset_train_for_id3 = pandas.concat([dataset_train, target_train], axis=1)
-max_range_split=3
 tree_id3 = id3(dataset_train_for_id3, attributes, target_attribute, max_range_split)
-evaluate_id3_model(tree_id3, dataset_test, target_test, mcv)
+evaluate_id3_model(tree_id3, dataset_test, target_test, mcv, True)
 
 # DecisionTreeClassifier
 print("DecisionTreeClassifier")
