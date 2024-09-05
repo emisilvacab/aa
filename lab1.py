@@ -230,18 +230,12 @@ def evaluate_sklearn_model(model, dataset_test, target_test):
 
   Returns:
       accuracy (float): La precisión del modelo en el conjunto de prueba.
-      classification_report (str): Un informe detallado de clasificación que incluye métricas como precisión, recall y f1-score.
   """
   target_pred = model.predict(dataset_test)
 
   accuracy = metrics.accuracy_score(target_test, target_pred)
-  report = metrics.classification_report(target_test, target_pred)
 
-  print(f"Accuracy: {accuracy}")
-  print("Classification Report:")
-  print(report)
-
-  return accuracy, report
+  return accuracy
 
 def predict_id3(tree, sample, default_value, use_ranges):
   """
@@ -288,16 +282,15 @@ def evaluate_id3_model(tree_id3, dataset_test, target_test, most_common_value, u
       dataset_test (pandas.DataFrame o numpy.ndarray): El conjunto de características (atributos) para la evaluación.
       target_test (pandas.Series o numpy.ndarray): El vector de etiquetas (target) correspondiente al conjunto de prueba.
       most_common_value: valor mas comun en el dataset para el target_attribute
+      use_ranges (bool, opcional): Indica si se deben usar rangos para las predicciones. El valor predeterminado es True.
+
+   Returns:
+      accuracy (float): Precisión del modelo evaluado.
   """
 
   predictions = [predict_id3(tree_id3, sample, most_common_value, use_ranges) for _, sample in dataset_test.iterrows()]
   target_test_for_id3 = target_test.astype(int)
 
   accuracy = metrics.accuracy_score(target_test_for_id3, predictions)
-  report = metrics.classification_report(target_test_for_id3, predictions)
 
-  print(f"Accuracy: {accuracy}")
-  print("Classification Report:")
-  print(report)
-
-  return accuracy, report
+  return accuracy
