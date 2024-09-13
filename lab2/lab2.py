@@ -13,7 +13,7 @@ class NaiveBayes():
 
 	def fit(self, dataset_train, target_train):
 		"""
-		Entrena un modelo Naive Bayes basado en la distribución Gaussiana, ajustando suavizado con m.
+		Entrena un modelo Naive Bayes basado en la distribución multinomial, ajustando suavizado con m.
 
 		Args:
 			dataset_train (numpy.ndarray o pandas.DataFrame): Conjunto de características de entrenamiento (muestras x características).
@@ -21,38 +21,37 @@ class NaiveBayes():
 
 		Returns:
 			priors (dict): Diccionario que contiene las probabilidades a priori P(clase) para cada clase.
-			likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
+			likelihoods (dict): Diccionario con los conteos y suavizado de cada característica dado una clase (probabilidades condicionales).
 			classes (numpy.ndarray): Array con las clases únicas en el conjunto de datos.
 		"""
 		# encontrar las clases unicas en el conjunto de entrenamiento
+		# [0, 1]
 		classes = np.unique(target_train)
 		# calcular todas las probabilidades P(clase) de cada clase (proporcion de muestras de cada clase)
+		# {0: proporcion de 0's, 1: proporcion de 1's}
 		priors = {c: np.mean(target_train == c) for c in classes}
 
-		# Calcular la media y varianza para cada característica dado cada clase, ajustando con m
+		# Calcular los conteos de cada característica dada una clase
 		likelihoods = {
-				c: {
-						'mean': np.mean(dataset_train[target_train == c], axis=0),
-						'var': np.var(dataset_train[target_train == c], axis=0) + (1 / self.m)  # Ajustar suavizado con m
-				}
-				for c in classes
-		}
+        c: (np.sum(dataset_train[target_train == c], axis=0) + self.m) / (np.sum(dataset_train[target_train == c]) + self.m * dataset_train.shape[1])
+        for c in classes
+    }
 		return priors, likelihoods, classes
 
-	def predict(self, dataset_train, priors, likelihoods, classes):
+	def predict(self, dataset_test, priors, likelihoods, classes):
 		"""
 		Predice las clases para un conjunto de muestras utilizando Naive Bayes.
 
 		Args:
-			dataset_train (numpy.ndarray o pandas.DataFrame): Conjunto de muestras (características) que se desean clasificar.
+			dataset_test (numpy.ndarray o pandas.DataFrame): Conjunto de muestras (características) que se desean clasificar.
 			priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
-			likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
+			likelihoods (dict): Diccionario de probabilidades de características para cada clase.
 			classes (numpy.ndarray): Array con las clases únicas del modelo.
 
 		Returns:
 				numpy.ndarray: Array con las clases predichas para cada muestra en el conjunto de datos.
 		"""
-		return np.array([self.predict_single(x, priors, likelihoods, classes) for x in dataset_train])
+		return np.array([self.predict_single(x, priors, likelihoods, classes) for x in dataset_test])
 
 	def predict_single(self, x, priors, likelihoods, classes):
 		"""
@@ -61,7 +60,7 @@ class NaiveBayes():
 		Args:
 			x (numpy.ndarray): Muestra (vector de características) para la cual se va a predecir la clase.
 			priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
-			likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
+			likelihoods (dict): Diccionario de probabilidades de características para cada clase.
 			classes (numpy.ndarray): Array con las clases únicas del modelo.
 
 		Returns:
@@ -69,32 +68,12 @@ class NaiveBayes():
 		"""
 		posteriors = {}
 
-		# Calcular la probabilidad posterior para cada clase
 		for c in classes:
 				prior = np.log(priors[c])  # Usar log para evitar underflow
-				likelihood = np.sum(
-						np.log(self.gaussian_probability(x, likelihoods[c]['mean'], likelihoods[c]['var']))
-				)
+				likelihood = np.sum(x * np.log(likelihoods[c]))  # Multiplicar las características por los log-probabilidades
 				posteriors[c] = prior + likelihood
 
-		# Devolver la clase con la mayor probabilidad posterior
 		return max(posteriors, key=posteriors.get)
-
-	def gaussian_probability(self, x, mean, var):
-		"""
-		Calcula la probabilidad de una característica utilizando la distribución Gaussiana.
-
-		Args:
-			x (float o numpy.ndarray): Valor de la característica que se quiere evaluar.
-			mean (float o numpy.ndarray): Media de la característica dada la clase.
-			var (float o numpy.ndarray): Varianza de la característica dada la clase (ajustada con suavizado).
-
-		Returns:
-			float o numpy.ndarray: Probabilidad de que el valor x pertenezca a la distribución con la media y varianza dadas.
-		"""
-		coeff = 1.0 / np.sqrt(2.0 * np.pi * var)
-		exponent = np.exp(-(np.power(x - mean, 2) / (2 * var)))
-		return coeff * exponent
 
 ##################################################################
 
