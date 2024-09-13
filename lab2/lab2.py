@@ -7,92 +7,96 @@ from sklearn.metrics import confusion_matrix, precision_recall_curve, classifica
 from sklearn.feature_selection import SelectKBest, chi2
 import matplotlib.pyplot as plt
 
-# Funciones del Naive Bayes implementado
-def fit_naive_bayes(dataset_train, target_train, m):
-	"""
-	Entrena un modelo Naive Bayes basado en la distribución Gaussiana, ajustando suavizado con m.
+class NaiveBayes():
+	def __init__(self, m):
+		self.m = m
 
-	Args:
-		dataset_train (numpy.ndarray o pandas.DataFrame): Conjunto de características de entrenamiento (muestras x características).
-		target_train (numpy.ndarray o pandas.Series): Vector de etiquetas o clases correspondiente al conjunto de entrenamiento.
-		m (int o float): Valor de suavizado (Laplace smoothing) para ajustar la varianza calculada.
+	def fit(self, dataset_train, target_train):
+		"""
+		Entrena un modelo Naive Bayes basado en la distribución Gaussiana, ajustando suavizado con m.
 
-	Returns:
-		priors (dict): Diccionario que contiene las probabilidades a priori P(clase) para cada clase.
-		likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
-		classes (numpy.ndarray): Array con las clases únicas en el conjunto de datos.
-	"""
-	# encontrar las clases unicas en el conjunto de entrenamiento
-	classes = np.unique(target_train)
-	# calcular todas las probabilidades P(clase) de cada clase (proporcion de muestras de cada clase)
-	priors = {c: np.mean(target_train == c) for c in classes}
+		Args:
+			dataset_train (numpy.ndarray o pandas.DataFrame): Conjunto de características de entrenamiento (muestras x características).
+			target_train (numpy.ndarray o pandas.Series): Vector de etiquetas o clases correspondiente al conjunto de entrenamiento.
 
-	# Calcular la media y varianza para cada característica dado cada clase, ajustando con m
-	likelihoods = {
-			c: {
-					'mean': np.mean(dataset_train[target_train == c], axis=0),
-					'var': np.var(dataset_train[target_train == c], axis=0) + (1 / m)  # Ajustar suavizado con m
-			}
-			for c in classes
-	}
-	return priors, likelihoods, classes
+		Returns:
+			priors (dict): Diccionario que contiene las probabilidades a priori P(clase) para cada clase.
+			likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
+			classes (numpy.ndarray): Array con las clases únicas en el conjunto de datos.
+		"""
+		# encontrar las clases unicas en el conjunto de entrenamiento
+		classes = np.unique(target_train)
+		# calcular todas las probabilidades P(clase) de cada clase (proporcion de muestras de cada clase)
+		priors = {c: np.mean(target_train == c) for c in classes}
 
-def gaussian_probability(x, mean, var):
-	"""
-	Calcula la probabilidad de una característica utilizando la distribución Gaussiana.
+		# Calcular la media y varianza para cada característica dado cada clase, ajustando con m
+		likelihoods = {
+				c: {
+						'mean': np.mean(dataset_train[target_train == c], axis=0),
+						'var': np.var(dataset_train[target_train == c], axis=0) + (1 / self.m)  # Ajustar suavizado con m
+				}
+				for c in classes
+		}
+		return priors, likelihoods, classes
 
-	Args:
-		x (float o numpy.ndarray): Valor de la característica que se quiere evaluar.
-		mean (float o numpy.ndarray): Media de la característica dada la clase.
-		var (float o numpy.ndarray): Varianza de la característica dada la clase (ajustada con suavizado).
+	def predict(self, dataset_train, priors, likelihoods, classes):
+		"""
+		Predice las clases para un conjunto de muestras utilizando Naive Bayes.
 
-	Returns:
-		float o numpy.ndarray: Probabilidad de que el valor x pertenezca a la distribución con la media y varianza dadas.
-	"""
-	coeff = 1.0 / np.sqrt(2.0 * np.pi * var)
-	exponent = np.exp(-(np.power(x - mean, 2) / (2 * var)))
-	return coeff * exponent
+		Args:
+			dataset_train (numpy.ndarray o pandas.DataFrame): Conjunto de muestras (características) que se desean clasificar.
+			priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
+			likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
+			classes (numpy.ndarray): Array con las clases únicas del modelo.
 
-def predict_single(x, priors, likelihoods, classes):
-	"""
-	Predice la clase para una sola muestra utilizando el modelo Naive Bayes.
+		Returns:
+				numpy.ndarray: Array con las clases predichas para cada muestra en el conjunto de datos.
+		"""
+		return np.array([self.predict_single(x, priors, likelihoods, classes) for x in dataset_train])
 
-	Args:
-		x (numpy.ndarray): Muestra (vector de características) para la cual se va a predecir la clase.
-		priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
-		likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
-		classes (numpy.ndarray): Array con las clases únicas del modelo.
+	def predict_single(self, x, priors, likelihoods, classes):
+		"""
+		Predice la clase para una sola muestra utilizando el modelo Naive Bayes.
 
-	Returns:
-		clase_predicha (int o str): La clase con la mayor probabilidad posterior para la muestra dada.
-	"""
-	posteriors = {}
+		Args:
+			x (numpy.ndarray): Muestra (vector de características) para la cual se va a predecir la clase.
+			priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
+			likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
+			classes (numpy.ndarray): Array con las clases únicas del modelo.
 
-	# Calcular la probabilidad posterior para cada clase
-	for c in classes:
-			prior = np.log(priors[c])  # Usar log para evitar underflow
-			likelihood = np.sum(
-					np.log(gaussian_probability(x, likelihoods[c]['mean'], likelihoods[c]['var']))
-			)
-			posteriors[c] = prior + likelihood
+		Returns:
+			clase_predicha (int o str): La clase con la mayor probabilidad posterior para la muestra dada.
+		"""
+		posteriors = {}
 
-	# Devolver la clase con la mayor probabilidad posterior
-	return max(posteriors, key=posteriors.get)
+		# Calcular la probabilidad posterior para cada clase
+		for c in classes:
+				prior = np.log(priors[c])  # Usar log para evitar underflow
+				likelihood = np.sum(
+						np.log(self.gaussian_probability(x, likelihoods[c]['mean'], likelihoods[c]['var']))
+				)
+				posteriors[c] = prior + likelihood
 
-def predict_naive_bayes(dataset_train, priors, likelihoods, classes):
-	"""
-	Predice las clases para un conjunto de muestras utilizando Naive Bayes.
+		# Devolver la clase con la mayor probabilidad posterior
+		return max(posteriors, key=posteriors.get)
 
-	Args:
-		dataset_train (numpy.ndarray o pandas.DataFrame): Conjunto de muestras (características) que se desean clasificar.
-		priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
-		likelihoods (dict): Diccionario de medias y varianzas para cada característica dada una clase.
-		classes (numpy.ndarray): Array con las clases únicas del modelo.
+	def gaussian_probability(self, x, mean, var):
+		"""
+		Calcula la probabilidad de una característica utilizando la distribución Gaussiana.
 
-	Returns:
-			numpy.ndarray: Array con las clases predichas para cada muestra en el conjunto de datos.
-	"""
-	return np.array([predict_single(x, priors, likelihoods, classes) for x in dataset_train])
+		Args:
+			x (float o numpy.ndarray): Valor de la característica que se quiere evaluar.
+			mean (float o numpy.ndarray): Media de la característica dada la clase.
+			var (float o numpy.ndarray): Varianza de la característica dada la clase (ajustada con suavizado).
+
+		Returns:
+			float o numpy.ndarray: Probabilidad de que el valor x pertenezca a la distribución con la media y varianza dadas.
+		"""
+		coeff = 1.0 / np.sqrt(2.0 * np.pi * var)
+		exponent = np.exp(-(np.power(x - mean, 2) / (2 * var)))
+		return coeff * exponent
+
+##################################################################
 
 def train_evaluate_naive_bayes(m):
 	"""
@@ -106,11 +110,14 @@ def train_evaluate_naive_bayes(m):
 	"""
 	print(f"Entrenando con m={m}")
 
+  # Inicializar el clasificador Naive Bayes con suavizado Laplaciano ajustado con m
+	model = NaiveBayes(m)
+
 	# Entrenar el modelo Naive Bayes implementado con suavizado (m)
-	priors, likelihoods, classes = fit_naive_bayes(dataset_train, target_train, m)
+	priors, likelihoods, classes = model.fit(dataset_train, target_train)
 
 	# Predecir
-	target_pred = predict_naive_bayes(dataset_test, priors, likelihoods, classes)
+	target_pred = model.predict(dataset_test, priors, likelihoods, classes)
 
 	# Matriz de confusión
 	cm = confusion_matrix(target_test, target_pred)
@@ -126,7 +133,7 @@ def train_evaluate_naive_bayes(m):
 	print(f"Precisión: {accuracy}")
 
 	# Curva precision-recall
-	target_scores = predict_naive_bayes(dataset_test, priors, likelihoods, classes)
+	target_scores = model.predict(dataset_test, priors, likelihoods, classes)
 	precision, recall, _ = precision_recall_curve(target_test, target_scores)
 
 	plt.plot(recall, precision, marker='.')
