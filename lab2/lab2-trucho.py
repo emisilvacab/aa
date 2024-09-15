@@ -62,6 +62,6 @@ for m in [1, 10, 100, 1000]:
 # 6. Validación cruzada
 # Evaluar con validación cruzada (5 folds) para medir estabilidad
 model = GaussianNB(var_smoothing=1/10)  # Puedes cambiar por otros valores de m
-scores = cross_val_score(model, X_new, y, cv=5, scoring='accuracy')
+scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
 print(f"Validación cruzada (5-folds): {scores}")
 print(f"Precisión promedio en validación cruzada: {np.mean(scores)}")
