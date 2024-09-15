@@ -33,19 +33,39 @@ class NaiveBayes():
 		# {0: proporcion de 0's, 1: proporcion de 1's}
 		self.priors = {c: np.mean(target_train == c) for c in self.classes}
 
-		# Número total de características
-		total_features = dataset_train.shape[1]
-		# Probabilidad a priori de cada característica, asumimos equiprobables
-		p = 1 / total_features
-		# Calcular los conteos de cada característica dada una clase con el m-estimador
+		# Inicializar el diccionario para las probabilidades condicionales (likelihoods)
 		self.likelihoods = {}
+
+		# Para cada clase, calcular la probabilidad condicional de cada característica
 		for c in self.classes:
-				# Conteos de características en la clase actual
-				counts = np.sum(dataset_train[target_train == c], axis=0)
-				# Número total de observaciones en la clase actual
-				total_count = np.sum(dataset_train[target_train == c])
-				# Aplicando el m-estimador
-				self.likelihoods[c] = (counts + self.m * p) / (total_count + self.m)
+			# Filtrar las filas de dataset_train donde la clase es igual a c
+			subset = dataset_train[target_train == c]
+
+			# Calcular n: número total de instancias en la clase c
+			n = len(subset)
+
+			# Inicializar la lista para almacenar las probabilidades de las características para esta clase
+			likelihoods_for_class = []
+
+			# Para cada característica (columna)
+			for col in range(dataset_train.shape[1]):
+				unique_values = np.unique(dataset_train[:, col])
+				# Obtener la cantidad de valores posibles para esta característica (cantidad de valores únicos)
+				num_unique_values = len(unique_values)
+				p = 1 / num_unique_values  # Probabilidad a priori de la característica
+
+				# Calcular e: Número de instancias favorables para cada valor de la característica dado la clase c
+				# Contar la cantidad de elementos en subset tal que la columna col tiene el valor específico value para todo value.
+				e = np.array([np.sum(subset[:, col] == value) for value in unique_values])
+
+				# Aplicando la fórmula del m-estimador
+				likelihood = (e + self.m * p) / (n + self.m)
+
+				# Almacenar la probabilidad condicional para esta característica
+				likelihoods_for_class.append(likelihood)
+
+			# Almacenar las probabilidades condicionales para la clase c
+			self.likelihoods[c] = likelihoods_for_class
 
 		return self
 
@@ -77,11 +97,35 @@ class NaiveBayes():
 		"""
 		posteriors = {}
 
+		# Calcular la probabilidad posterior para cada clase
 		for c in self.classes:
-				prior = np.log(self.priors[c])  # Usar log para evitar underflow
-				likelihood = np.sum(x * np.log(self.likelihoods[c]))  # Multiplicar las características por los log-probabilidades
-				posteriors[c] = prior + likelihood
+			# Iniciar con la probabilidad a priori de la clase
+			prior = np.log(self.priors[c])  # Usar log para evitar underflow
 
+			# Inicializar la suma de los logaritmos de las probabilidades condicionales
+			likelihood = 0
+
+			# Iterar sobre cada característica
+			for i in range(len(x)):
+				# Obtener el valor de la característica en la muestra actual
+				feature_value = x[i]
+
+				# Obtener los valores únicos para la característica i
+				unique_values = np.unique(self.likelihoods[c][i])
+
+				# Buscar el índice del valor actual en la lista de valores únicos
+				if feature_value in unique_values:
+					# Obtener la probabilidad condicional correspondiente
+					idx = np.where(unique_values == feature_value)[0][0]
+					likelihood += np.log(self.likelihoods[c][i][idx])
+				else:
+					# Si el valor no está en los valores únicos, usar una probabilidad baja
+					likelihood += np.log(1e-9)  # Pequeño valor para evitar log(0)
+
+			# Sumar log(prior) + suma de log(likelihoods)
+			posteriors[c] = prior + likelihood
+
+		# Devolver la clase con la mayor probabilidad posterior
 		return max(posteriors, key=posteriors.get)
 
 	def get_params(self, deep=True):
