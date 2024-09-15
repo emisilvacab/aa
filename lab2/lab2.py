@@ -33,11 +33,20 @@ class NaiveBayes():
 		# {0: proporcion de 0's, 1: proporcion de 1's}
 		self.priors = {c: np.mean(target_train == c) for c in self.classes}
 
-		# Calcular los conteos de cada característica dada una clase
-		self.likelihoods = {
-        c: (np.sum(dataset_train[target_train == c], axis=0) + self.m) / (np.sum(dataset_train[target_train == c]) + self.m * dataset_train.shape[1])
-        for c in self.classes
-    }
+		# Número total de características
+		total_features = dataset_train.shape[1]
+		# Probabilidad a priori de cada característica, asumimos equiprobables
+		p = 1 / total_features
+		# Calcular los conteos de cada característica dada una clase con el m-estimador
+		self.likelihoods = {}
+		for c in self.classes:
+				# Conteos de características en la clase actual
+				counts = np.sum(dataset_train[target_train == c], axis=0)
+				# Número total de observaciones en la clase actual
+				total_count = np.sum(dataset_train[target_train == c])
+				# Aplicando el m-estimador
+				self.likelihoods[c] = (counts + self.m * p) / (total_count + self.m)
+
 		return self
 
 	def predict(self, dataset_test):
@@ -79,7 +88,7 @@ class NaiveBayes():
 		# Devuelve un diccionario con los parámetros del estimador
 		return {'m': self.m}
 
-##################################################################
+#################################################### SCRIPT ####################################################
 
 def train_evaluate_naive_bayes(m):
 	"""
