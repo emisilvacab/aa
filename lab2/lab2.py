@@ -2,9 +2,10 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import confusion_matrix, precision_recall_curve, classification_report, accuracy_score
 from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.utils.estimator_checks import check_estimator
 import matplotlib.pyplot as plt
 
 class NaiveBayes():
@@ -26,19 +27,19 @@ class NaiveBayes():
 		"""
 		# encontrar las clases unicas en el conjunto de entrenamiento
 		# [0, 1]
-		classes = np.unique(target_train)
+		self.classes = np.unique(target_train)
 		# calcular todas las probabilidades P(clase) de cada clase (proporcion de muestras de cada clase)
 		# {0: proporcion de 0's, 1: proporcion de 1's}
-		priors = {c: np.mean(target_train == c) for c in classes}
+		self.priors = {c: np.mean(target_train == c) for c in self.classes}
 
 		# Calcular los conteos de cada característica dada una clase
-		likelihoods = {
+		self.likelihoods = {
         c: (np.sum(dataset_train[target_train == c], axis=0) + self.m) / (np.sum(dataset_train[target_train == c]) + self.m * dataset_train.shape[1])
-        for c in classes
+        for c in self.classes
     }
-		return priors, likelihoods, classes
+		return self
 
-	def predict(self, dataset_test, priors, likelihoods, classes):
+	def predict(self, dataset_test):
 		"""
 		Predice las clases para un conjunto de muestras utilizando Naive Bayes.
 
@@ -51,9 +52,9 @@ class NaiveBayes():
 		Returns:
 				numpy.ndarray: Array con las clases predichas para cada muestra en el conjunto de datos.
 		"""
-		return np.array([self.predict_single(x, priors, likelihoods, classes) for x in dataset_test])
+		return np.array([self.predict_single(x) for x in dataset_test])
 
-	def predict_single(self, x, priors, likelihoods, classes):
+	def predict_single(self, x):
 		"""
 		Predice la clase para una sola muestra utilizando el modelo Naive Bayes.
 
@@ -68,12 +69,16 @@ class NaiveBayes():
 		"""
 		posteriors = {}
 
-		for c in classes:
-				prior = np.log(priors[c])  # Usar log para evitar underflow
-				likelihood = np.sum(x * np.log(likelihoods[c]))  # Multiplicar las características por los log-probabilidades
+		for c in self.classes:
+				prior = np.log(self.priors[c])  # Usar log para evitar underflow
+				likelihood = np.sum(x * np.log(self.likelihoods[c]))  # Multiplicar las características por los log-probabilidades
 				posteriors[c] = prior + likelihood
 
 		return max(posteriors, key=posteriors.get)
+	
+	def get_params(self, deep=True):
+		# Devuelve un diccionario con los parámetros del estimador
+		return {'m': self.m}
 
 ##################################################################
 
@@ -93,10 +98,10 @@ def train_evaluate_naive_bayes(m):
 	model = NaiveBayes(m)
 
 	# Entrenar el modelo Naive Bayes implementado con suavizado (m)
-	priors, likelihoods, classes = model.fit(dataset_train, target_train)
+	model.fit(dataset_train, target_train)
 
 	# Predecir
-	target_pred = model.predict(dataset_test, priors, likelihoods, classes)
+	target_pred = model.predict(dataset_test)
 
 	# Matriz de confusión
 	cm = confusion_matrix(target_test, target_pred)
@@ -112,7 +117,7 @@ def train_evaluate_naive_bayes(m):
 	print(f"Precisión: {accuracy}")
 
 	# Curva precision-recall
-	target_scores = model.predict(dataset_test, priors, likelihoods, classes)
+	target_scores = model.predict(dataset_test)
 	precision, recall, _ = precision_recall_curve(target_test, target_scores)
 
 	plt.plot(recall, precision, marker='.')
@@ -136,3 +141,9 @@ dataset_train, dataset_test, target_train, target_test = train_test_split(prepro
 # 4. Entrenar y evaluar con diferentes valores de m
 for m in [1, 10, 100, 1000]:
   train_evaluate_naive_bayes(m)
+
+  modelCross = NaiveBayes(m)
+  #check_estimator(modelCross)
+  scores = cross_val_score(modelCross, dataset_train, target_train, cv=5, scoring='accuracy')
+  print(f"Validación cruzada (5-folds): {scores}")
+  print(f"Precisión promedio en validación cruzada: {np.mean(scores)}")
