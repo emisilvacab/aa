@@ -21,9 +21,10 @@ class NaiveBayes():
 			target_train (numpy.ndarray o pandas.Series): Vector de etiquetas o clases correspondiente al conjunto de entrenamiento.
 
 		Returns:
-			priors (dict): Diccionario que contiene las probabilidades a priori P(clase) para cada clase.
-			likelihoods (dict): Diccionario con los conteos y suavizado de cada característica dado una clase (probabilidades condicionales).
-			classes (numpy.ndarray): Array con las clases únicas en el conjunto de datos.
+			self (NaiveBayes) con los atributos:
+				priors (dict): Diccionario que contiene las probabilidades a priori P(clase) para cada clase.
+				likelihoods (dict): Diccionario con los conteos y suavizado de cada característica dado una clase (probabilidades condicionales).
+				classes (numpy.ndarray): Array con las clases únicas en el conjunto de datos.
 		"""
 		# encontrar las clases unicas en el conjunto de entrenamiento
 		# [0, 1]
@@ -45,9 +46,6 @@ class NaiveBayes():
 
 		Args:
 			dataset_test (numpy.ndarray o pandas.DataFrame): Conjunto de muestras (características) que se desean clasificar.
-			priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
-			likelihoods (dict): Diccionario de probabilidades de características para cada clase.
-			classes (numpy.ndarray): Array con las clases únicas del modelo.
 
 		Returns:
 				numpy.ndarray: Array con las clases predichas para cada muestra en el conjunto de datos.
@@ -60,9 +58,10 @@ class NaiveBayes():
 
 		Args:
 			x (numpy.ndarray): Muestra (vector de características) para la cual se va a predecir la clase.
-			priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
-			likelihoods (dict): Diccionario de probabilidades de características para cada clase.
-			classes (numpy.ndarray): Array con las clases únicas del modelo.
+			self (NaiveBayes) con los atributos:
+				priors (dict): Diccionario de probabilidades a priori P(clase) para cada clase.
+				likelihoods (dict): Diccionario de probabilidades de características para cada clase.
+				classes (numpy.ndarray): Array con las clases únicas del modelo.
 
 		Returns:
 			clase_predicha (int o str): La clase con la mayor probabilidad posterior para la muestra dada.
@@ -75,7 +74,7 @@ class NaiveBayes():
 				posteriors[c] = prior + likelihood
 
 		return max(posteriors, key=posteriors.get)
-	
+
 	def get_params(self, deep=True):
 		# Devuelve un diccionario con los parámetros del estimador
 		return {'m': self.m}
