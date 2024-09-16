@@ -182,13 +182,14 @@ def train_evaluate_naive_bayes(m):
 	plt.ylabel("Precision")
 	plt.show()
 
-def categorize_numeric_features(df, bins=10):
+def categorize_numeric_features(df, bins=3):
     """
     Convierte atributos numéricos en categóricos utilizando bins.
     """
+    ATTRIBUTES_REQUIRING_RANGES = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
     df_categorized = df.copy()
 
-    for column in df_categorized.select_dtypes(include=['float64']).columns:
+    for column in ATTRIBUTES_REQUIRING_RANGES:
         # Convertir el atributo numérico en categórico usando `pd.cut`
         df_categorized[column], bins_used = pd.cut(
             df_categorized[column],
@@ -198,7 +199,6 @@ def categorize_numeric_features(df, bins=10):
         )
 
     return df_categorized
-
 
 # 1. Cargar el dataset y categorizar atributos continuos
 dataset = pd.read_csv('./lab1_dataset.csv')
