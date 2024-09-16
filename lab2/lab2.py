@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import confusion_matrix, precision_recall_curve, classification_report, accuracy_score
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.utils.estimator_checks import check_estimator
+from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 
 class NaiveBayes():
@@ -39,7 +40,10 @@ class NaiveBayes():
 		# Para cada clase, calcular la probabilidad condicional de cada característica
 		for c in self.classes:
 			# Filtrar las filas de dataset_train donde la clase es igual a c
-			subset = dataset_train[target_train == c]
+			if isinstance(dataset_train, pd.DataFrame):
+				subset = dataset_train[target_train == c].to_numpy()
+			else:
+				subset = dataset_train[target_train == c]
 
 			# Calcular n: número total de instancias en la clase c
 			n = len(subset)
@@ -47,9 +51,14 @@ class NaiveBayes():
 			# Inicializar la lista para almacenar las probabilidades de las características para esta clase
 			likelihoods_for_class = []
 
+			if isinstance(dataset_train, pd.DataFrame):
+				dataset_train_array = dataset_train[target_train == c].to_numpy()
+			else:
+				dataset_train_array = dataset_train[target_train == c]
+
 			# Para cada característica (columna)
-			for col in range(dataset_train.shape[1]):
-				unique_values = np.unique(dataset_train[:, col])
+			for col in range(dataset_train_array.shape[1]):
+				unique_values = np.unique(dataset_train_array[:, col])
 				# Obtener la cantidad de valores posibles para esta característica (cantidad de valores únicos)
 				num_unique_values = len(unique_values)
 				p = 1 / num_unique_values  # Probabilidad a priori de la característica
@@ -178,17 +187,41 @@ def train_evaluate_naive_bayes(m):
 	plt.ylabel("Precision")
 	plt.show()
 
-# 1. Cargar el dataset
+def categorize_numeric_features(df, bins=10):
+    """
+    Convierte atributos numéricos en categóricos utilizando bins.
+    """
+    df_categorized = df.copy()
+
+    for column in df_categorized.select_dtypes(include=['float64']).columns:
+        # Convertir el atributo numérico en categórico usando `pd.cut`
+        df_categorized[column], bins_used = pd.cut(
+            df_categorized[column],
+            bins=bins,
+            labels=False,
+            retbins=True
+        )
+
+    return df_categorized
+
+
+# 1. Cargar el dataset y categorizar atributos continuos
 dataset = pd.read_csv('./lab1_dataset.csv')
-preprocessed_dataset = dataset.drop('cid', axis=1).drop('pidnum', axis=1)  # cid es la columna objetivo
+preprocessed_dataset = dataset.drop(['cid', 'pidnum'], axis=1)
 target_column = dataset['cid']
+preprocessed_dataset = categorize_numeric_features(preprocessed_dataset)
 
-# 2. Selección de características
-k_best = SelectKBest(score_func=chi2, k=10)
-preprocessed_dataset = k_best.fit_transform(preprocessed_dataset, target_column)
+# 2. División del dataset en conjunto de entrenamiento y prueba
+dataset_train, dataset_test, target_train, target_test = train_test_split(
+	preprocessed_dataset, target_column, test_size=0.2, random_state=42
+)
+dataset_test = dataset_test.to_numpy()
 
-# 3. División del dataset en conjunto de entrenamiento y prueba
-dataset_train, dataset_test, target_train, target_test = train_test_split(preprocessed_dataset, target_column, test_size=0.2, random_state=42)
+# 3. Aplicar la técnica de Chi-2 (seleccion de atributos)
+chi2_selector = SelectKBest(chi2, k=10)  # Seleccionar los 10 mejores atributos
+dataset_train_with_selected_attributes = chi2_selector.fit_transform(dataset_train, target_train)
+selected_columns = dataset_train.columns[chi2_selector.get_support()]
+print(f"Los atributos seleccionados por chi-2 son: {selected_columns}")
 
 # 4. Entrenar y evaluar con diferentes valores de m
 for m in [1, 10, 100, 1000]:
@@ -196,6 +229,6 @@ for m in [1, 10, 100, 1000]:
 
   modelCross = NaiveBayes(m)
   #check_estimator(modelCross)
-  scores = cross_val_score(modelCross, dataset_train, target_train, cv=5, scoring='accuracy')
+  scores = cross_val_score(modelCross, dataset_train_with_selected_attributes, target_train, cv=5, scoring='accuracy')
   print(f"Validación cruzada (5-folds): {scores}")
   print(f"Precisión promedio en validación cruzada: {np.mean(scores)}")
