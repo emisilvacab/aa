@@ -110,9 +110,12 @@ class NaiveBayes():
 		for c in self.classes:
 			# Iniciar con la probabilidad a priori de la clase
 			prior = np.log(self.priors[c])  # Usar log para evitar underflow
+			## comentarios con ## hace lo mismo sin log
+			## prior = self.priors[c]
 
 			# Inicializar la suma de los logaritmos de las probabilidades condicionales
 			likelihood = 0
+			## likelihood = priors
 
 			# Iterar sobre cada característica
 			for feature in range(len(x)):
@@ -121,8 +124,10 @@ class NaiveBayes():
 				feature_value_likelihood = feature_likelihood.get(feature_value, 1e-9)
 
 				likelihood += np.log(feature_value_likelihood)
+				## likelihood *= feature_value_likelihood
 
 			posteriors[c] = prior + likelihood
+			## posteriors[c] = likelihood
 
 		# Devolver la clase con la mayor probabilidad posterior
 		return max(posteriors, key=posteriors.get)
