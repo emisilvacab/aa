@@ -214,7 +214,7 @@ dataset_train, dataset_test, target_train, target_test = train_test_split(
 dataset_test = dataset_test.to_numpy()
 
 # 3. Aplicar la técnica de Chi-2 (seleccion de atributos)
-chi2_selector = SelectKBest(chi2, k=10)  # Seleccionar los 10 mejores atributos
+chi2_selector = SelectKBest(chi2, k=11)  # Seleccionar los 10 mejores atributos
 dataset_train_with_selected_attributes = chi2_selector.fit_transform(dataset_train, target_train)
 selected_columns = dataset_train.columns[chi2_selector.get_support()]
 print(f"Los atributos seleccionados por chi-2 son: {selected_columns}")
