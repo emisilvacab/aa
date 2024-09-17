@@ -8,6 +8,7 @@ from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.utils.estimator_checks import check_estimator
 from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 class NaiveBayes():
 	def __init__(self, m):
@@ -218,12 +219,30 @@ dataset_train_with_selected_attributes = chi2_selector.fit_transform(dataset_tra
 selected_columns = dataset_train.columns[chi2_selector.get_support()]
 print(f"Los atributos seleccionados por chi-2 son: {selected_columns}")
 
-# 4. Entrenar y evaluar con diferentes valores de m
+# 4. Calcular la matriz de correlación y eliminar atributos con una relacion mayor a 0.85
+dataset_train_df = pd.DataFrame(dataset_train_with_selected_attributes, columns=selected_columns)
+correlation_matrix = dataset_train_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+plt.show()
+
+threshold = 0.85
+columns_to_discard = set()
+for i in range(len(correlation_matrix.columns)):
+  for j in range(i):
+    if abs(correlation_matrix.iloc[i, j]) > threshold:
+      columns_to_discard.add(correlation_matrix.columns[i])
+print(f"Atributos descartados por alta correlación: {list(columns_to_discard)}")
+
+dataset_train = dataset_train_df.drop(columns=columns_to_discard).to_numpy()
+
+# 5. Entrenar y evaluar con diferentes valores de m
 for m in [1, 10, 100, 1000]:
   train_evaluate_naive_bayes(m)
 
   modelCross = NaiveBayes(m)
   #check_estimator(modelCross)
-  scores = cross_val_score(modelCross, dataset_train_with_selected_attributes, target_train, cv=5, scoring='accuracy')
+  scores = cross_val_score(modelCross, dataset_train, target_train, cv=5, scoring='accuracy')
   print(f"Validación cruzada (5-folds): {scores}")
   print(f"Precisión promedio en validación cruzada: {np.mean(scores)}")
+  print("--------------------------------------------------------------------------------------------")
