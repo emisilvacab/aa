@@ -9,6 +9,7 @@ from sklearn.utils.estimator_checks import check_estimator
 from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import PrecisionRecallDisplay
 
 class NaiveBayes():
 	def __init__(self, m):
@@ -160,28 +161,7 @@ def train_evaluate_naive_bayes(m):
 	# Predecir
 	target_pred = model.predict(dataset_test)
 
-	# Matriz de confusión
-	cm = confusion_matrix(target_test, target_pred)
-	print("Matriz de confusión:")
-	print(cm)
-
-	# Clasificación (precision, recall, f1-score)
-	print("Informe de clasificación:")
-	print(classification_report(target_test, target_pred, zero_division=1))
-
-	# Calcular la precisión general
-	accuracy = accuracy_score(target_test, target_pred)
-	print(f"Precisión: {accuracy}")
-
-	# Curva precision-recall
-	target_scores = model.predict(dataset_test)
-	precision, recall, _ = precision_recall_curve(target_test, target_scores)
-
-	plt.plot(recall, precision, marker='.')
-	plt.title(f"Curva Precision-Recall para Naive Bayes Implementado con m={m}")
-	plt.xlabel("Recall")
-	plt.ylabel("Precision")
-	plt.show()
+	return target_pred
 
 def categorize_numeric_features(df, bins=3):
     """
@@ -242,10 +222,34 @@ dataset_train = dataset_train_df.drop(columns=columns_to_discard).to_numpy()
 
 # 5. Entrenar y evaluar con diferentes valores de m
 for m in [1, 10, 100, 1000]:
-  train_evaluate_naive_bayes(m)
+  target_pred = train_evaluate_naive_bayes(m)
+
+	# Curva precision-recall
+  display = PrecisionRecallDisplay.from_predictions(
+    target_test, target_pred, name="LinearSVC", plot_chance_level=True
+  )
+  precision, recall, _ = precision_recall_curve(target_test, target_pred)
+
+  plt.plot(recall, precision, marker='.')
+  plt.title(f"Curva Precision-Recall para Naive Bayes Implementado con m={m}")
+  plt.xlabel("Recall")
+  plt.ylabel("Precision")
+  plt.show()
+
+	# Matriz de confusión
+  cm = confusion_matrix(target_test, target_pred)
+  print("Matriz de confusión:")
+  print(cm)
+
+  # Clasificación (precision, recall, f1-score)
+  print("Informe de clasificación:")
+  print(classification_report(target_test, target_pred, zero_division=1))
+
+	# Calcular la precisión general
+  accuracy = accuracy_score(target_test, target_pred)
+  print(f"Precisión: {accuracy}")
 
   modelCross = NaiveBayes(m)
-  #check_estimator(modelCross)
   scores = cross_val_score(modelCross, dataset_train, target_train, cv=5, scoring='accuracy')
   print(f"Validación cruzada (5-folds): {scores}")
   print(f"Precisión promedio en validación cruzada: {np.mean(scores)}")
