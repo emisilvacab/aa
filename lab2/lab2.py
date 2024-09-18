@@ -208,8 +208,12 @@ target_column = dataset['cid']
 preprocessed_dataset = categorize_numeric_features(preprocessed_dataset)
 
 # 2. División del dataset en conjunto de entrenamiento y prueba
+class_proportions = target_column.value_counts(normalize=True)
+print("Las proporciones de valores de la clase objetivo son:")
+print(class_proportions)
+
 dataset_train, dataset_test, target_train, target_test = train_test_split(
-	preprocessed_dataset, target_column, test_size=0.2, random_state=42
+	preprocessed_dataset, target_column, test_size=0.2, random_state=42, stratify=target_column
 )
 dataset_test = dataset_test.to_numpy()
 
