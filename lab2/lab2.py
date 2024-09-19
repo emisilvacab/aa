@@ -140,7 +140,7 @@ class NaiveBayes():
 
 #################################################### SCRIPT ####################################################
 
-def train_evaluate_naive_bayes(m):
+def train_evaluate_naive_bayes(m, dataset_train, target_train, dataset_test):
 	"""
 	Entrena y evalúa el modelo Naive Bayes utilizando el suavizado especificado y muestra los resultados de la evaluación.
 
@@ -222,7 +222,7 @@ dataset_train = dataset_train_df.drop(columns=columns_to_discard).to_numpy()
 
 # 5. Entrenar y evaluar con diferentes valores de m
 for m in [1, 10, 100, 1000]:
-  target_pred = train_evaluate_naive_bayes(m)
+  target_pred = train_evaluate_naive_bayes(m, dataset_train, target_train, dataset_test)
 
 	# Curva precision-recall
   display = PrecisionRecallDisplay.from_predictions(
