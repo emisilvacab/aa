@@ -1,5 +1,3 @@
-# IMPLEMENTANDO NAIVE BAYES
-
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score
@@ -30,8 +28,8 @@ class NaiveBayes():
 				classes (numpy.ndarray): Array con las clases únicas en el conjunto de datos.
 		"""
 		# encontrar las clases unicas en el conjunto de entrenamiento
-		# [0, 1]
 		self.classes = np.unique(target_train)
+
 		# calcular todas las probabilidades P(clase) de cada clase (proporcion de muestras de cada clase)
 		# {0: proporcion de 0's, 1: proporcion de 1's}
 		self.priors = {c: np.mean(target_train == c) for c in self.classes}
@@ -39,9 +37,7 @@ class NaiveBayes():
 		# Inicializar el diccionario para las probabilidades condicionales (likelihoods)
 		self.likelihoods = {}
 
-		# Para cada clase, calcular la probabilidad condicional de cada característica
 		for c in self.classes:
-			# Filtrar las filas de dataset_train donde la clase es igual a c
 			if isinstance(dataset_train, pd.DataFrame):
 				subset = dataset_train[target_train == c].to_numpy()
 			else:
@@ -58,11 +54,12 @@ class NaiveBayes():
 			else:
 				dataset_train_array = dataset_train[target_train == c]
 
-			# Para cada característica (columna)
 			for col in range(dataset_train_array.shape[1]):
 				unique_values = np.unique(dataset_train_array[:, col])
+
 				# Obtener la cantidad de valores posibles para esta característica (cantidad de valores únicos)
 				num_unique_values = len(unique_values)
+
 				# Probabilidad a priori de la característica
 				p = 1 / num_unique_values
 
@@ -112,24 +109,17 @@ class NaiveBayes():
 		for c in self.classes:
 			# Iniciar con la probabilidad a priori de la clase
 			prior = np.log(self.priors[c])  # Usar log para evitar underflow
-			## comentarios con ## hace lo mismo sin log
-			## prior = self.priors[c]
 
 			# Inicializar la suma de los logaritmos de las probabilidades condicionales
 			likelihood = 0
-			## likelihood = priors
 
-			# Iterar sobre cada característica
 			for feature in range(len(x)):
 				feature_value = x[feature]
 				feature_likelihood = self.likelihoods[c].get(feature, {})
 				feature_value_likelihood = feature_likelihood.get(feature_value, 1e-9)
-
 				likelihood += np.log(feature_value_likelihood)
-				## likelihood *= feature_value_likelihood
 
 			posteriors[c] = prior + likelihood
-			## posteriors[c] = likelihood
 
 		# Devolver la clase con la mayor probabilidad posterior
 		return max(posteriors, key=posteriors.get)
@@ -137,8 +127,6 @@ class NaiveBayes():
 	def get_params(self, deep=True):
 		# Devuelve un diccionario con los parámetros del estimador
 		return {'m': self.m}
-
-#################################################### SCRIPT ####################################################
 
 def train_evaluate_naive_bayes(m, dataset_train, target_train, dataset_test):
 	"""
@@ -162,95 +150,3 @@ def train_evaluate_naive_bayes(m, dataset_train, target_train, dataset_test):
 	target_pred = model.predict(dataset_test)
 
 	return target_pred
-
-def categorize_numeric_features(df, bins=3):
-    """
-    Convierte atributos numéricos en categóricos utilizando bins.
-    """
-    ATTRIBUTES_REQUIRING_RANGES = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
-    df_categorized = df.copy()
-
-    for column in ATTRIBUTES_REQUIRING_RANGES:
-        # Convertir el atributo numérico en categórico usando `pd.cut`
-        df_categorized[column], bins_used = pd.cut(
-            df_categorized[column],
-            bins=bins,
-            labels=False,
-            retbins=True
-        )
-
-    return df_categorized
-
-# 1. Cargar el dataset y categorizar atributos continuos
-dataset = pd.read_csv('./lab1_dataset.csv')
-preprocessed_dataset = dataset.drop(['cid', 'pidnum'], axis=1)
-target_column = dataset['cid']
-preprocessed_dataset = categorize_numeric_features(preprocessed_dataset)
-
-# 2. División del dataset en conjunto de entrenamiento y prueba
-class_proportions = target_column.value_counts(normalize=True)
-print("Las proporciones de valores de la clase objetivo son:")
-print(class_proportions)
-
-dataset_train, dataset_test, target_train, target_test = train_test_split(
-	preprocessed_dataset, target_column, test_size=0.2, random_state=42, stratify=target_column
-)
-dataset_test = dataset_test.to_numpy()
-
-# 3. Aplicar la técnica de Chi-2 (seleccion de atributos)
-chi2_selector = SelectKBest(chi2, k=11)  # Seleccionar los 10 mejores atributos
-dataset_train_with_selected_attributes = chi2_selector.fit_transform(dataset_train, target_train)
-selected_columns = dataset_train.columns[chi2_selector.get_support()]
-print(f"Los atributos seleccionados por chi-2 son: {selected_columns}")
-
-# 4. Calcular la matriz de correlación y eliminar atributos con una relacion mayor a 0.85
-dataset_train_df = pd.DataFrame(dataset_train_with_selected_attributes, columns=selected_columns)
-correlation_matrix = dataset_train_df.corr()
-plt.figure(figsize=(10, 8))
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
-plt.show()
-
-threshold = 0.85
-columns_to_discard = set()
-for i in range(len(correlation_matrix.columns)):
-  for j in range(i):
-    if abs(correlation_matrix.iloc[i, j]) > threshold:
-      columns_to_discard.add(correlation_matrix.columns[i])
-print(f"Atributos descartados por alta correlación: {list(columns_to_discard)}")
-
-dataset_train = dataset_train_df.drop(columns=columns_to_discard).to_numpy()
-
-# 5. Entrenar y evaluar con diferentes valores de m
-for m in [1, 10, 100, 1000]:
-  target_pred = train_evaluate_naive_bayes(m, dataset_train, target_train, dataset_test)
-
-	# Curva precision-recall
-  display = PrecisionRecallDisplay.from_predictions(
-    target_test, target_pred, name="LinearSVC", plot_chance_level=True
-  )
-  precision, recall, _ = precision_recall_curve(target_test, target_pred)
-
-  plt.plot(recall, precision, marker='.')
-  plt.title(f"Curva Precision-Recall para Naive Bayes Implementado con m={m}")
-  plt.xlabel("Recall")
-  plt.ylabel("Precision")
-  plt.show()
-
-	# Matriz de confusión
-  cm = confusion_matrix(target_test, target_pred)
-  print("Matriz de confusión:")
-  print(cm)
-
-  # Clasificación (precision, recall, f1-score)
-  print("Informe de clasificación:")
-  print(classification_report(target_test, target_pred, zero_division=1))
-
-	# Calcular la precisión general
-  accuracy = accuracy_score(target_test, target_pred)
-  print(f"Precisión: {accuracy}")
-
-  modelCross = NaiveBayes(m)
-  scores = cross_val_score(modelCross, dataset_train, target_train, cv=5, scoring='accuracy')
-  print(f"Validación cruzada (5-folds): {scores}")
-  print(f"Precisión promedio en validación cruzada: {np.mean(scores)}")
-  print("--------------------------------------------------------------------------------------------")
