@@ -1,86 +1,75 @@
-import sys
 import gymnasium as gym
+from lab3 import *
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
-import random
-import pygame
 from pygame.locals import *
 
-# Inicializar pygame (para el control con el teclado) y el ambiente
-pygame.init()
-env = gym.make('LunarLander-v2', render_mode='human')
-env.reset()
-pygame.display.set_caption('Lunar Lander')
+def ejecutar_episodio(agente, aprender = True, render = None):
+  entorno = gym.make('LunarLander-v2', render_mode=render).env
+  iteraciones = 0
+  recompensa_total = 0
 
-clock = pygame.time.Clock()
-done = False
+  termino = False
+  truncado = False
+  estado_anterior, info = entorno.reset()
+  while not termino and not truncado:
+      # Le pedimos al agente que elija entre las posibles acciones (0..entorno.action_space.n)
+      # Si no estamos aprendiendo, explotamos sin explorar
+      accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, not aprender)
+      # Realizamos la accion
+      estado_siguiente, recompensa, termino, truncado, info = entorno.step(accion)
+      # Le informamos al agente para que aprenda
+      if (aprender):
+          agente.aprender(estado_anterior, estado_siguiente, accion, recompensa, termino)
+          agente.fin_episodio()
 
-while not done:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            done = True
-            break
-
-    keys = pygame.key.get_pressed()
-
-    # Map keys to actions
-    if keys[K_LEFT]:
-        action = 3  # Fire left orientation engine
-    elif keys[K_RIGHT]:
-        action = 1 # Fire right orientation engine
-    elif keys[K_UP]:
-        action = 2  # Fire main engine
-    else:
-        action = 0  # Do nothing
-
-    _, _, terminated, truncated, _ = env.step(action)
-    env.render()
-    clock.tick(10)
-
-    if terminated or truncated:
-        done = True
-
-env.close()
-pygame.quit()
+      estado_anterior = estado_siguiente
+      iteraciones += 1
+      recompensa_total += recompensa
+  entorno.close()
+  return recompensa_total
 
 
+entorno = gym.make('LunarLander-v2').env
 # Cuántos bins queremos por dimensión
-# Pueden considerar variar este parámetro
-bins_per_dim = 20
+bins_per_dim = 15
 
-# Estado:
-# (x, y, x_vel, y_vel, theta, theta_vel, pie_izq_en_contacto, pie_derecho_en_contacto)
+# Estado: (x, y, x_vel, y_vel, theta, theta_vel, pie_izq_en_contacto, pie_derecho_en_contacto)
 NUM_BINS = [bins_per_dim, bins_per_dim, bins_per_dim, bins_per_dim, bins_per_dim, bins_per_dim, 2, 2]
 
-env = gym.make('LunarLander-v2', render_mode='human')
-env.reset()
-
-# Tomamos los rangos del env
-OBS_SPACE_HIGH = env.observation_space.high
-OBS_SPACE_LOW = env.observation_space.low
-OBS_SPACE_LOW[1] = 0 # Para la coordenada y (altura), no podemos ir más abajo que la zona dea aterrizae (que está en el 0, 0)
+#  Tomamos los rangos del entorno
+OBS_SPACE_HIGH = entorno.observation_space.high
+OBS_SPACE_LOW = entorno.observation_space.low
+OBS_SPACE_LOW[1] = 0
 
 # Los bins para cada dimensión
 bins = [
     np.linspace(OBS_SPACE_LOW[i], OBS_SPACE_HIGH[i], NUM_BINS[i] - 1)
     for i in range(len(NUM_BINS) - 2) # last two are binary
 ]
-# Se recomienda observar los bins para entender su estructura
-# print ("Bins: ", bins)
+entorno.close()
 
-def discretize_state(state, bins):
-    """Discretize the continuous state into a tuple of discrete indices."""
-    state_disc = list()
-    for i in range(len(state)):
-        if i >= len(bins):  # For binary features (leg contacts)
-            state_disc.append(int(state[i]))
-        else:
-            state_disc.append(
-                np.digitize(state[i], bins[i])
-            )
-    return tuple(state_disc)
+agente = AgenteRL(bins)
+exitos = 0
+recompensa_episodios = []
+num_episodios = 1000
+for i in range(num_episodios):
+    recompensa = ejecutar_episodio(agente, aprender = True)
 
-# Ejemplos
-print(discretize_state([0.0, 0.0, 0, 0, 0, 0, 1, 1], bins)) # En la zona de aterrizaje y quieto
-print(discretize_state([0, 1.5, 0, 0, 0, 0, 0, 0], bins)) # Comenzando la partida, arriba y en el centro
+    # Los episodios se consideran exitosos si se obutvo 200 o más de recompensa total
+    if (recompensa >= 200):
+        exitos += 1
+
+    recompensa_episodios += [recompensa]
+print(f"Tasa de éxito APRENDIENDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios)} de recompensa, en promedio")
+
+for i in range(num_episodios):
+    recompensa = ejecutar_episodio(agente, aprender = False)
+
+    # Los episodios se consideran exitosos si se obutvo 200 o más de recompensa total
+    if (recompensa >= 200):
+        exitos += 1
+
+    recompensa_episodios += [recompensa]
+print(f"Tasa de éxito EXPLOTANDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios)} de recompensa, en promedio")

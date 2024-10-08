@@ -1,118 +1,72 @@
-# class Agente:
-#     def elegir_accion(self, estado, max_accion, explorar = True) -> int:
-#         """Elegir la accion a tomar en el estado actual y el espacio de acciones
-#             - estado_anterior: el estado desde que se empezó
-#             - estado_siguiente: el estado al que se llegó
-#             - accion: la acción que llevo al agente desde estado_anterior a estado_siguiente
-#             - recompensa: la recompensa recibida en la transicion
-#             - terminado: si el episodio terminó
-#         """
-#         pass
+import random
+import numpy as np
+import gymnasium as gym
+class Agente:
+    def elegir_accion(self, estado, max_accion, explorar = True) -> int:
+        """Elegir la accion a tomar en el estado actual y el espacio de acciones
+            - estado_anterior: el estado desde que se empezó
+            - estado_siguiente: el estado al que se llegó
+            - accion: la acción que llevo al agente desde estado_anterior a estado_siguiente
+            - recompensa: la recompensa recibida en la transicion
+            - terminado: si el episodio terminó
+        """
+        pass
 
-#     def aprender(self, estado_anterior, estado_siguiente, accion, recompensa, terminado):
-#         """Aprender a partir de la tupla
-#             - estado_anterior: el estado desde que se empezó
-#             - estado_siguiente: el estado al que se llegó
-#             - accion: la acción que llevo al agente desde estado_anterior a estado_siguiente
-#             - recompensa: la recompensa recibida en la transicion
-#             - terminado: si el episodio terminó en esta transición
-#         """
-#         pass
+    def aprender(self, estado_anterior, estado_siguiente, accion, recompensa, terminado):
+        """Aprender a partir de la tupla
+            - estado_anterior: el estado desde que se empezó
+            - estado_siguiente: el estado al que se llegó
+            - accion: la acción que llevo al agente desde estado_anterior a estado_siguiente
+            - recompensa: la recompensa recibida en la transicion
+            - terminado: si el episodio terminó en esta transición
+        """
+        pass
+class AgenteRL(Agente):
+    def __init__(self, bins, gamma=0.9, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
+        super().__init__()
+        self.gamma = gamma
+        self.epsilon = epsilon  # Factor de exploración
+        self.epsilon_min = epsilon_min  # Mínimo valor de epsilon para la política epsilon-greedy
+        self.epsilon_decay = epsilon_decay  # Decaimiento de epsilon para disminuir exploración
+        self.bins = bins
+        self.q_table = {}  # Tabla Q para almacenar los valores Q de los estados y acciones
 
+    def _discretize_state(self, state):
+        """Discretiza el estado continuo en una tupla de indices discretos"""
 
-# import random
+        state_disc = list()
+        for i in range(len(state)):
+            if i >= len(self.bins):
+                state_disc.append(int(state[i]))
+            else:
+                state_disc.append(np.digitize(state[i], self.bins[i]))
+        return tuple(state_disc)
 
-# class AgenteAleatorio(Agente):
-#     def elegir_accion(self, estado, max_accion, explorar = True) -> int:
-#         # Elige una acción al azar
-#         return random.randrange(max_accion)
+    def elegir_accion(self, estado, max_accion, explorar=True) -> int:
+        """Elige una acción usando la política epsilon-greedy."""
 
-#     def aprender(self, estado_anterior, estado_siguiente, accion, recompensa, terminado):
-#         # No aprende
-#         pass
+        estado = self._discretize_state(estado)
 
+        if explorar and np.random.rand() < self.epsilon:  # Política epsilon-greedy
+            return random.randint(0, max_accion - 1)  # Acción aleatoria (exploración)
+        else:
+            if estado not in self.q_table:
+                self.q_table[estado] = np.zeros(max_accion)  # Inicializa con ceros si no existe
+            return np.argmax(self.q_table[estado])  # Acción óptima (explotación)
 
-# def ejecutar_episodio(agente, aprender = True, render = None):
-#   entorno = gym.make('LunarLander-v2', render_mode=render).env
+    def aprender(self, estado_anterior, estado_siguiente, accion, recompensa, terminado):
+        """Actualiza la tabla Q usando la fórmula de Q-learning."""
 
-#   iteraciones = 0
-#   recompensa_total = 0
+        estado_anterior = self._discretize_state(estado_anterior)
+        estado_siguiente = self._discretize_state(estado_siguiente)
+        q_valor_actual = self.q_table[estado_anterior][accion]
 
-#   termino = False
-#   truncado = False
-#   estado_anterior, info = entorno.reset()
-#   while not termino and not truncado:
-#       # Le pedimos al agente que elija entre las posibles acciones (0..entorno.action_space.n)
-#       # Si no estamos aprendiendo, explotamos sin explorar
-#       accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, not aprender)
-#       # Realizamos la accion
-#       estado_siguiente, recompensa, termino, truncado, info = entorno.step(accion)
-#       # Le informamos al agente para que aprenda
-#       if (aprender):
-#           agente.aprender(estado_anterior, estado_siguiente, accion, recompensa, termino)
+        max_q_siguiente = np.max(self.q_table[estado_siguiente]) if estado_siguiente in self.q_table else 0
+        q_valor_actual = recompensa + self.gamma * max_q_siguiente * (1 - terminado)
+        self.q_table[estado_anterior][accion] = q_valor_actual
 
-#       estado_anterior = estado_siguiente
-#       iteraciones += 1
-#       recompensa_total += recompensa
-#   env.close()
-#   return recompensa_total
+    def fin_episodio(self):
+        """Reduce epsilon para disminuir la exploración en episodios futuros."""
 
-
-# # Nota: hay que transformar esta celda en código para ejecutar (Esc + y)
-
-# # Ejecutamos un episodio con el agente aleatorio y modo render 'human', para poder verlo
-# ejecutar_episodio(AgenteAleatorio(), render = 'human')
-
-
-# agente = AgenteAleatorio()
-# recompensa_episodios = []
-
-# exitos = 0
-# num_episodios = 100
-# for i in range(num_episodios):
-#     recompensa = ejecutar_episodio(agente)
-#     # Los episodios se consideran exitosos si se obutvo 200 o más de recompensa total
-#     if (recompensa >= 200):
-#         exitos += 1
-#     recompensa_episodios += [recompensa]
-
-# import numpy
-# print(f"Tasa de éxito: {exitos / num_episodios}. Se obtuvo {numpy.mean(recompensa_episodios)} de recompensa, en promedio")
-
-
-# class AgenteRL(Agente):
-#     # Agregar código aqui
-
-#     # Pueden agregar parámetros al constructor
-#     def __init__(self) -> None:
-#         super().__init__()
-#         # Agregar código aqui
-
-#     def elegir_accion(self, estado, max_accion, explorar = True) -> int:
-#         # Agregar código aqui
-#         return 0
-
-#     def aprender(self, estado_anterior, estado_siguiente, accion, recompensa, terminado):
-#         # Agregar código aqui
-#         pass
-
-#     def fin_episodio(self):
-#         # Agregar código aqui
-#         pass
-
-
-# # Nota: hay que transformar esta celda en código para ejecutar (Esc + y)
-# # Advertencia: este bloque es un loop infinito si el agente se deja sin implementar
-
-# entorno = gym.make('LunarLander-v2').env
-# agente = AgenteRL()
-# exitos = 0
-# recompensa_episodios = []
-# num_episodios = 100
-# for i in range(num_episodios):
-#     recompensa = ejecutar_episodio(agente, aprender = False)
-#     # Los episodios se consideran exitosos si se obutvo 200 o más de recompensa total
-#     if (recompensa >= 200):
-#         exitos += 1
-#     recompensa_episodios += [recompensa]
-# print(f"Tasa de éxito: {exitos / num_episodios}. Se obtuvo {numpy.mean(recompensa_episodios)} de recompensa, en promedio")
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
