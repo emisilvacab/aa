@@ -7,25 +7,23 @@ from pygame.locals import *
 
 def ejecutar_episodio(agente, aprender = True, render = None):
   entorno = gym.make('LunarLander-v2', render_mode=render).env
-  iteraciones = 0
   recompensa_total = 0
-
   termino = False
   truncado = False
   estado_anterior, info = entorno.reset()
+
   while not termino and not truncado:
       # Le pedimos al agente que elija entre las posibles acciones (0..entorno.action_space.n)
-      # Si no estamos aprendiendo, explotamos sin explorar
       accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, not aprender)
+
       # Realizamos la accion
       estado_siguiente, recompensa, termino, truncado, info = entorno.step(accion)
-      # Le informamos al agente para que aprenda
+
       if (aprender):
           agente.aprender(estado_anterior, estado_siguiente, accion, recompensa, termino)
-          agente.fin_episodio()
 
+      agente.fin_episodio()
       estado_anterior = estado_siguiente
-      iteraciones += 1
       recompensa_total += recompensa
   entorno.close()
   return recompensa_total
