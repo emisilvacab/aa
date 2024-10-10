@@ -14,7 +14,7 @@ def ejecutar_episodio(agente, aprender = True, render = None):
 
   while not termino and not truncado:
       # Le pedimos al agente que elija entre las posibles acciones (0..entorno.action_space.n)
-      accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, not aprender)
+      accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, aprender)
 
       # Realizamos la accion
       estado_siguiente, recompensa, termino, truncado, info = entorno.step(accion)
@@ -48,7 +48,7 @@ bins = [
 ]
 entorno.close()
 
-agente = AgenteRL(bins)
+agente = AgenteRL(bins, entorno.action_space.n)
 exitos = 0
 recompensa_episodios = []
 num_episodios = 1000

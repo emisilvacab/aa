@@ -22,13 +22,14 @@ class Agente:
         """
         pass
 class AgenteRL(Agente):
-    def __init__(self, bins, gamma=0.9, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
+    def __init__(self, bins, max_accion, gamma=0.9, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
         super().__init__()
         self.gamma = gamma
         self.epsilon = epsilon  # Factor de exploración
         self.epsilon_min = epsilon_min  # Mínimo valor de epsilon para la política epsilon-greedy
         self.epsilon_decay = epsilon_decay  # Decaimiento de epsilon para disminuir exploración
         self.bins = bins
+        self.max_accion = max_accion
         self.q_table = {}  # Tabla Q para almacenar los valores Q de los estados y acciones
 
     def _discretize_state(self, state):
@@ -59,7 +60,10 @@ class AgenteRL(Agente):
 
         estado_anterior = self._discretize_state(estado_anterior)
         estado_siguiente = self._discretize_state(estado_siguiente)
-        q_valor_actual = self.q_table[estado_anterior][accion]
+        if estado_anterior not in self.q_table:
+            self.q_table[estado_anterior] = np.zeros(self.max_accion)  # Inicializa con ceros si no existe
+        if estado_siguiente not in self.q_table:
+            self.q_table[estado_siguiente] = np.zeros(self.max_accion)  # Inicializa con ceros si no existe
 
         max_q_siguiente = np.max(self.q_table[estado_siguiente]) if estado_siguiente in self.q_table else 0
         q_valor_actual = recompensa + self.gamma * max_q_siguiente * (1 - terminado)
