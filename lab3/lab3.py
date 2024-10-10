@@ -48,11 +48,11 @@ class AgenteRL(Agente):
         estado = self._discretize_state(estado)
 
         if explorar and np.random.rand() < self.epsilon:  # Política epsilon-greedy
-            return random.randint(0, max_accion - 1)  # Acción aleatoria (exploración)
+            return random.randint(0, max_accion - 1)  # Acción aleatoria
         else:
             if estado not in self.q_table:
                 self.q_table[estado] = np.zeros(max_accion)  # Inicializa con ceros si no existe
-            return np.argmax(self.q_table[estado])  # Acción óptima (explotación)
+            return np.argmax(self.q_table[estado])  # Acción óptima
 
     def aprender(self, estado_anterior, estado_siguiente, accion, recompensa, terminado):
         """Actualiza la tabla Q usando la fórmula de Q-learning."""
