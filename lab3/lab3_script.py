@@ -51,8 +51,8 @@ entorno.close()
 agente = AgenteRL(bins, entorno.action_space.n)
 exitos = 0
 recompensa_episodios_aprendiendo = []
-num_episodios = 1000
-for i in range(num_episodios):
+num_episodios_aprendiendo = 1000
+for i in range(num_episodios_aprendiendo):
     recompensa = ejecutar_episodio(agente, aprender = True)
 
     # Los episodios se consideran exitosos si se obutvo 200 o más de recompensa total
@@ -60,11 +60,12 @@ for i in range(num_episodios):
         exitos += 1
 
     recompensa_episodios_aprendiendo += [recompensa]
-print(f"Tasa de éxito APRENDIENDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios_aprendiendo)} de recompensa, en promedio")
+print(f"Tasa de éxito APRENDIENDO: {exitos / num_episodios_aprendiendo}. Se obtuvo {np.mean(recompensa_episodios_aprendiendo)} de recompensa, en promedio")
 
 recompensa_episodios_explotando = []
+num_episodios_explotando = 1000
 
-for i in range(num_episodios):
+for i in range(num_episodios_explotando):
     recompensa = ejecutar_episodio(agente, aprender = False)
 
     # Los episodios se consideran exitosos si se obutvo 200 o más de recompensa total
@@ -72,7 +73,7 @@ for i in range(num_episodios):
         exitos += 1
 
     recompensa_episodios_explotando += [recompensa]
-print(f"Tasa de éxito EXPLOTANDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios_explotando)} de recompensa, en promedio")
+print(f"Tasa de éxito EXPLOTANDO: {exitos / num_episodios_explotando}. Se obtuvo {np.mean(recompensa_episodios_explotando)} de recompensa, en promedio")
 
 # Graficar recompensas para ambas fases
 plt.plot(recompensa_episodios_aprendiendo, label='Aprendiendo')
