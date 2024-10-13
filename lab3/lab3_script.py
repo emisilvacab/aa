@@ -50,7 +50,7 @@ entorno.close()
 
 agente = AgenteRL(bins, entorno.action_space.n)
 exitos = 0
-recompensa_episodios = []
+recompensa_episodios_aprendiendo = []
 num_episodios = 1000
 for i in range(num_episodios):
     recompensa = ejecutar_episodio(agente, aprender = True)
@@ -59,8 +59,10 @@ for i in range(num_episodios):
     if (recompensa >= 200):
         exitos += 1
 
-    recompensa_episodios += [recompensa]
-print(f"Tasa de éxito APRENDIENDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios)} de recompensa, en promedio")
+    recompensa_episodios_aprendiendo += [recompensa]
+print(f"Tasa de éxito APRENDIENDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios_aprendiendo)} de recompensa, en promedio")
+
+recompensa_episodios_explotando = []
 
 for i in range(num_episodios):
     recompensa = ejecutar_episodio(agente, aprender = False)
@@ -69,5 +71,14 @@ for i in range(num_episodios):
     if (recompensa >= 200):
         exitos += 1
 
-    recompensa_episodios += [recompensa]
-print(f"Tasa de éxito EXPLOTANDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios)} de recompensa, en promedio")
+    recompensa_episodios_explotando += [recompensa]
+print(f"Tasa de éxito EXPLOTANDO: {exitos / num_episodios}. Se obtuvo {np.mean(recompensa_episodios_explotando)} de recompensa, en promedio")
+
+# Graficar recompensas para ambas fases
+plt.plot(recompensa_episodios_aprendiendo, label='Aprendiendo')
+plt.plot(recompensa_episodios_explotando, label='Explotando')
+plt.xlabel('Episodio')
+plt.ylabel('Recompensa Total')
+plt.title('Comparación de recompensas durante aprendizaje y explotación')
+plt.legend()
+plt.show()
