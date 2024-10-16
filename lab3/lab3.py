@@ -22,7 +22,7 @@ class Agente:
         """
         pass
 class AgenteRL(Agente):
-    def __init__(self, bins, max_accion, gamma=0.9, alpha=0.1, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
+    def __init__(self, bins, max_accion, gamma=0.99, alpha=0.1, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
         super().__init__()
         self.gamma = gamma
         self.epsilon = epsilon  # Factor de exploración
