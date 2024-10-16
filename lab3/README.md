@@ -2,6 +2,7 @@
 brew install swig
 # LINUX
 sudo apt-get install swig3.0
+sudo apt-get install python3.10-dev
 
 pip install pygame
 pip install gymnasium
