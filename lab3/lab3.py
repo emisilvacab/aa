@@ -22,7 +22,7 @@ class Agente:
         """
         pass
 class AgenteRL(Agente):
-    def __init__(self, bins, max_accion, gamma=0.9, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
+    def __init__(self, bins, max_accion, gamma=0.9, alpha=0.1, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995) -> None:
         super().__init__()
         self.gamma = gamma
         self.epsilon = epsilon  # Factor de exploración
@@ -31,6 +31,7 @@ class AgenteRL(Agente):
         self.bins = bins
         self.max_accion = max_accion
         self.q_table = {}  # Tabla Q para almacenar los valores Q de los estados y acciones
+        self.alpha = alpha  # Factor de aprendizaje
 
     def _discretize_state(self, state):
         """Discretiza el estado continuo en una tupla de indices discretos"""
@@ -66,8 +67,9 @@ class AgenteRL(Agente):
             self.q_table[estado_siguiente] = np.zeros(self.max_accion)  # Inicializa con ceros si no existe
 
         max_q_siguiente = np.max(self.q_table[estado_siguiente]) if estado_siguiente in self.q_table else 0
-        q_valor_actual = recompensa + self.gamma * max_q_siguiente * (1 - terminado)
-        self.q_table[estado_anterior][accion] = q_valor_actual
+
+        q_valor_actual = self.q_table[estado_anterior][accion]
+        self.q_table[estado_anterior][accion] = (1 - self.alpha) * q_valor_actual + self.alpha * (recompensa + self.gamma * max_q_siguiente * (1 - terminado))
 
     def fin_episodio(self):
         """Reduce epsilon para disminuir la exploración en episodios futuros."""

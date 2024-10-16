@@ -51,7 +51,7 @@ entorno.close()
 agente = AgenteRL(bins, entorno.action_space.n)
 exitos_aprendiendo = 0
 recompensa_episodios_aprendiendo = []
-num_episodios_aprendiendo = 1000
+num_episodios_aprendiendo = 5000
 for i in range(num_episodios_aprendiendo):
     recompensa = ejecutar_episodio(agente, aprender = True)
 
