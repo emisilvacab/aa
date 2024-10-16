@@ -5,28 +5,31 @@ import matplotlib.pyplot as plt
 from collections import deque
 from pygame.locals import *
 
-def ejecutar_episodio(agente, aprender = True, render = None):
-  entorno = gym.make('LunarLander-v2', render_mode=render).env
-  recompensa_total = 0
-  termino = False
-  truncado = False
-  estado_anterior, info = entorno.reset()
+def ejecutar_episodio(agente, aprender = True, render = None, max_iteraciones=500):
+    entorno = gym.make('LunarLander-v2', render_mode=render).env
 
-  while not termino and not truncado:
-      # Le pedimos al agente que elija entre las posibles acciones (0..entorno.action_space.n)
-      accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, aprender)
+    iteraciones = 0
+    recompensa_total = 0
 
-      # Realizamos la accion
-      estado_siguiente, recompensa, termino, truncado, info = entorno.step(accion)
+    termino = False
+    truncado = False
+    estado_anterior, info = entorno.reset()
+    while iteraciones < max_iteraciones and not termino and not truncado:
+        # Le pedimos al agente que elija entre las posibles acciones (0..entorno.action_space.n)
+        accion = agente.elegir_accion(estado_anterior, entorno.action_space.n, aprender)
+        # Realizamos la accion
+        estado_siguiente, recompensa, termino, truncado, info = entorno.step(accion)
+        # Le informamos al agente para que aprenda
+        if (aprender):
+            agente.aprender(estado_anterior, estado_siguiente, accion, recompensa, termino)
 
-      if (aprender):
-          agente.aprender(estado_anterior, estado_siguiente, accion, recompensa, termino)
-
-      agente.fin_episodio()
-      estado_anterior = estado_siguiente
-      recompensa_total += recompensa
-  entorno.close()
-  return recompensa_total
+        estado_anterior = estado_siguiente
+        iteraciones += 1
+        recompensa_total += recompensa
+    if (aprender):
+        agente.fin_episodio()
+    entorno.close()
+    return recompensa_total
 
 
 entorno = gym.make('LunarLander-v2').env
