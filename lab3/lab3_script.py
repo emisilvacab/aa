@@ -87,3 +87,50 @@ plt.ylabel('Recompensa Total')
 plt.title('Comparación de recompensas durante aprendizaje y explotación')
 plt.legend()
 plt.show()
+
+# Condición: cayendo rápido y sin rotación
+bins_cayendo_rapido = list(range(0, 7))  # Velocidad vertical rapida (negativa)
+bins_sin_rotacion = list(range(5, 10))  # Ángulo y velocidad angular cerca de 0
+contador_acciones = [0, 0, 0, 0]
+for estado, valores_q in agente.q_table.items():
+    _, _, x_vel_bin, y_vel_bin, theta_bin, theta_vel_bin, pie_izq, pie_der = estado
+    if (y_vel_bin in bins_cayendo_rapido and theta_bin in bins_sin_rotacion and theta_vel_bin in bins_sin_rotacion):
+        accion_recomendada = np.argmax(valores_q)
+        contador_acciones[accion_recomendada] += 1
+print('Condición: cayendo rápido y sin rotación')
+print(f'Acción 0 (no hacer nada): {contador_acciones[0]} veces')
+print(f'Acción 1 (activar propulsor izquierdo): {contador_acciones[1]} veces')
+print(f'Acción 2 (activar motor principal): {contador_acciones[2]} veces')
+print(f'Acción 3 (activar propulsor derecho): {contador_acciones[3]} veces')
+
+# Condición: rotación sin control hacia la izquierda
+bins_rotacion_izquierda = list(range(0, 5))  # Theta_vel negativa (sentido antihorario)
+bins_inclinacion_izquierda = list(range(0, 5))  # Theta negativo (inclinación hacia la izquierda)
+contador_acciones = [0, 0, 0, 0]
+for estado, valores_q in agente.q_table.items():
+    _, _, _, _, theta_bin, theta_vel_bin, pie_izq, pie_der = estado
+    if (theta_vel_bin in bins_rotacion_izquierda and theta_bin in bins_inclinacion_izquierda):
+        accion_recomendada = np.argmax(valores_q)
+        contador_acciones[accion_recomendada] += 1
+print('Condición: rotación sin control hacia la izquierda')
+print(f'Acción 0 (no hacer nada): {contador_acciones[0]} veces')
+print(f'Acción 1 (activar propulsor izquierdo): {contador_acciones[1]} veces')
+print(f'Acción 2 (activar motor principal): {contador_acciones[2]} veces')
+print(f'Acción 3 (activar propulsor derecho): {contador_acciones[3]} veces')
+
+# Condición: rotación sin control hacia la derecha
+bins_rotacion_derecha = list(range(10, 15))  # Theta_vel positiva (sentido horario)
+bins_inclinacion_derecha = list(range(10, 15))  # Theta positiva (inclinación hacia la derecha)
+contador_acciones = [0, 0, 0, 0]
+for estado, valores_q in agente.q_table.items():
+    _, _, _, _, theta_bin, theta_vel_bin, pie_izq, pie_der = estado
+    if (theta_vel_bin in bins_rotacion_derecha and theta_bin in bins_inclinacion_derecha):
+        accion_recomendada = np.argmax(valores_q)
+        contador_acciones[accion_recomendada] += 1
+print('Condición: rotación sin control hacia la derecha')
+print(f'Acción 0 (no hacer nada): {contador_acciones[0]} veces')
+print(f'Acción 1 (activar propulsor izquierdo): {contador_acciones[1]} veces')
+print(f'Acción 2 (activar motor principal): {contador_acciones[2]} veces')
+print(f'Acción 3 (activar propulsor derecho): {contador_acciones[3]} veces')
+
+
