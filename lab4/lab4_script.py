@@ -33,3 +33,29 @@ print(f"Tamaño del conjunto de entrenamiento completo: {dataset_train_full.shap
 print(f"Tamaño del conjunto de entrenamiento: {dataset_train.shape[0]}")
 print(f"Tamaño del conjunto de validación: {dataset_val.shape[0]}")
 print(f"Tamaño del conjunto de test: {dataset_test.shape[0]}")
+
+# 2. Modelo de Regresión Logística
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import StandardScaler
+
+# Inicializar el escalador
+scaler = StandardScaler()
+
+# Ajustar el escalador y transformar los conjuntos de entrenamiento y validación
+dataset_train_scaled = scaler.fit_transform(dataset_train)
+dataset_val_scaled = scaler.transform(dataset_val)
+
+# Inicializar el modelo de regresión logística
+modelo_logistico = LogisticRegression(max_iter=1000, random_state=42)
+
+# Entrenar el modelo con el conjunto de entrenamiento
+modelo_logistico.fit(dataset_train_scaled, target_train)
+
+# Realizar predicciones en el conjunto de validación
+target_pred_val = modelo_logistico.predict(dataset_val_scaled)
+
+# Calcular la accuracy en el conjunto de validación
+accuracy_val = accuracy_score(target_val, target_pred_val)
+print(f"Accuracy en el conjunto de validación: {accuracy_val:.4f}")
