@@ -69,96 +69,157 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-# Convertir los datos a tensores
-dataset_train_tensor = torch.FloatTensor(dataset_train_scaled)
-target_train_tensor = torch.LongTensor(
-    target_train.values
-)  # Asegúrate de que 'target_train' sea un arreglo de enteros
-dataset_val_tensor = torch.FloatTensor(dataset_val_scaled)
-target_val_tensor = torch.LongTensor(target_val.values)
 
 
-# Definir el modelo
-class SimpleNN(nn.Module):
-    def __init__(self):
-        super(SimpleNN, self).__init__()
-        self.linear = nn.Linear(dataset_train_tensor.shape[1], 2)  # Asumiendo 2 clases
 
-    def forward(self, x):
-        return self.linear(x)
+# Paso 2: Definir una función para crear y entrenar el modelo con múltiples capas ocultas
+def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs=100):
+    # Convertir los datos a tensores de PyTorch
+    X_train_tensor = torch.tensor(dataset_train_scaled, dtype=torch.float32)
+    y_train_tensor = torch.tensor(target_train.values, dtype=torch.float32 if output_size == 1 else torch.long)
+    X_val_tensor = torch.tensor(dataset_val_scaled, dtype=torch.float32)
+    y_val_tensor = torch.tensor(target_val.values, dtype=torch.float32 if output_size == 1 else torch.long)
+    
+    # Definir el modelo
+    class CustomModel(nn.Module):
+        def __init__(self):
+            super(CustomModel, self).__init__()
+            layers = []
 
+            # Capa de entrada
+            last_size = input_size
 
-# Inicializar el modelo, la función de pérdida y el optimizador
-model = SimpleNN()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01)
+            # Capas ocultas
+            for hidden_size in hidden_layers:
+                layers.append(nn.Linear(last_size, hidden_size))
+                layers.append(activation_fn)
+                last_size = hidden_size
 
-# Variables para almacenar la pérdida y precisión
-train_loss_history = []
-val_loss_history = []
-train_accuracy_history = []
-val_accuracy_history = []
+            # Capa de salida (sin activación, se usa sigmoide después)
+            layers.append(nn.Linear(last_size, output_size))
+            self.model = nn.Sequential(*layers)
 
-# Entrenamiento del modelo
+        def forward(self, x):
+            x = self.model(x)
+            if output_size == 1:
+                x = torch.sigmoid(x) # La salida es una probabilidad
+            return x
+
+    model = CustomModel()
+
+    # Definir la función de pérdida y el optimizador
+    criterion = loss_fn
+    optimizer = optimizer_fn(model.parameters())
+
+    # Almacenar pérdidas y accuracy
+    train_losses = []
+    val_losses = []
+    train_accuracies = []
+    val_accuracies = []
+
+    # Entrenamiento del modelo
+    for epoch in range(num_epochs):
+        # Modo de entrenamiento
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(X_train_tensor)
+        # Ajustar la función de pérdida según el tipo de salida
+        if output_size == 1:  # Clasificación binaria
+            loss = criterion(outputs, y_train_tensor.view(-1, 1))
+            # Convertir salidas a 0 o 1 para la accuracy
+            train_predictions = (outputs > 0.5).float()
+        else:  # Clasificación multiclase
+            loss = criterion(outputs, y_train_tensor)
+            # Usar argmax para obtener la clase con mayor probabilidad
+            train_predictions = torch.argmax(outputs, dim=1)
+        loss.backward()
+        optimizer.step()
+
+        # Evaluación en el conjunto de validación
+        model.eval()
+        with torch.no_grad():
+            train_loss = loss.item()
+            val_outputs = model(X_val_tensor)
+            if output_size == 1:
+                val_loss = criterion(val_outputs, y_val_tensor.view(-1, 1)).item()
+                val_predictions = (val_outputs > 0.5).float()
+            else:
+                val_loss = criterion(val_outputs, y_val_tensor).item()
+                val_predictions = torch.argmax(val_outputs, dim=1)
+
+            # Calcular la accuracy
+            train_accuracy = (train_predictions.squeeze() == y_train_tensor).float().mean().item()
+            val_accuracy = (val_predictions.squeeze() == y_val_tensor).float().mean().item()
+
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            train_accuracies.append(train_accuracy)
+            val_accuracies.append(val_accuracy)
+
+        print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}, Training Accuracy: {train_accuracy:.4f}, Validation Accuracy: {val_accuracy:.4f}')
+
+    # Graficar la pérdida y la accuracy
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(train_losses, label='Train Loss')
+    plt.plot(val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss vs Epochs')
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.plot(train_accuracies, label='Train Accuracy')
+    plt.plot(val_accuracies, label='Validation Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy vs Epochs')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+    
+    return model
+
+# Paso 3: Ejemplo de uso para entrenar el modelo con múltiples capas ocultas
+# Modelo 2
+"""input_size = dataset_train_scaled.shape[1] # Número de características de entrada
+hidden_layers = [] # No hay capas ocultas
+output_size = 2 # Ya que hay dos salidas (una para cada clase).
+activation_fn = None # Porque no hay una función de activación después de la capa de salida
+loss_fn = nn.CrossEntropyLoss()
+optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
 num_epochs = 100
-for epoch in range(num_epochs):
-    # Entrenamiento
-    model.train()
-    optimizer.zero_grad()
-    outputs = model(dataset_train_tensor)
-    loss = criterion(outputs, target_train_tensor)
-    loss.backward()
-    optimizer.step()
 
-    # Calcular precisión de entrenamiento
-    _, predicted_train = torch.max(outputs.data, 1)
-    train_accuracy = (predicted_train == target_train_tensor).sum().item() / len(
-        target_train_tensor
-    )
+# Entrenar y evaluar el modelo
+trained_model2 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+del optimizer_fn, loss_fn"""
 
-    # Validación
-    model.eval()
-    with torch.no_grad():
-        val_outputs = model(dataset_val_tensor)
-        val_loss = criterion(val_outputs, target_val_tensor)
+# Modelo 3
+"""input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+hidden_layers = [] # No hay capas ocultas
+output_size = 1 # La salida es la probabilidad de una de las clases
+activation_fn = nn.Sigmoid()
+loss_fn = nn.BCELoss()
+optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
+num_epochs = 100
 
-        # Calcular precisión de validación
-        _, predicted_val = torch.max(val_outputs.data, 1)
-        val_accuracy = (predicted_val == target_val_tensor).sum().item() / len(
-            target_val_tensor
-        )
+# Entrenar y evaluar el modelo
+trained_model3 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+del optimizer_fn, loss_fn"""
 
-    # Guardar estadísticas
-    train_loss_history.append(loss.item())
-    val_loss_history.append(val_loss.item())
-    train_accuracy_history.append(train_accuracy)
-    val_accuracy_history.append(val_accuracy)
+# Modelo 4
+"""input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+hidden_layers = [16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
+output_size = 1  # La salida es la probabilidad de una de las clases
+activation_fn = nn.Sigmoid()
+loss_fn = nn.BCELoss()
+optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
+num_epochs = 100
 
-    # Imprimir información de cada época
-    if (epoch + 1) % 10 == 0:
-        print(
-            f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {loss.item():.4f}, Train Accuracy: {train_accuracy:.4f}, Val Loss: {val_loss.item():.4f}, Val Accuracy: {val_accuracy:.4f}"
-        )
+# Entrenar y evaluar el modelo
+trained_model4 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+del optimizer_fn, loss_fn"""
 
-## 3.6. Graficar la pérdida y la precisión
-plt.figure(figsize=(12, 5))
-
-## Gráfica de la pérdida
-plt.subplot(1, 2, 1)
-plt.plot(train_loss_history, label="Train Loss")
-plt.plot(val_loss_history, label="Validation Loss")
-plt.title("Loss vs Epochs")
-plt.xlabel("Epochs")
-plt.ylabel("Loss")
-plt.legend()
-
-## Gráfica de la precisión
-plt.subplot(1, 2, 2)
-plt.plot(train_accuracy_history, label="Train Accuracy")
-plt.plot(val_accuracy_history, label="Validation Accuracy")
-plt.title("Accuracy vs Epochs")
-plt.xlabel("Epochs")
-plt.ylabel("Accuracy")
-plt.legend()
-
-plt.show()
+# del trained_model4 , trained_model3, trained_model4
+torch.cuda.empty_cache()  # Si estás usando una GPU
