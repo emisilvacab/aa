@@ -69,9 +69,6 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-
-
-
 # Paso 2: Definir una función para crear y entrenar el modelo con múltiples capas ocultas
 def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs=100):
     # Convertir los datos a tensores de PyTorch
@@ -92,7 +89,8 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
             # Capas ocultas
             for hidden_size in hidden_layers:
                 layers.append(nn.Linear(last_size, hidden_size))
-                layers.append(activation_fn)
+                if activation_fn:  # Añadir activación solo si no es None
+                    layers.append(activation_fn)
                 last_size = hidden_size
 
             # Capa de salida (sin activación, se usa sigmoide después)
@@ -183,7 +181,7 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
 
 # Paso 3: Ejemplo de uso para entrenar el modelo con múltiples capas ocultas
 # Modelo 2
-"""input_size = dataset_train_scaled.shape[1] # Número de características de entrada
+input_size = dataset_train_scaled.shape[1] # Número de características de entrada
 hidden_layers = [] # No hay capas ocultas
 output_size = 2 # Ya que hay dos salidas (una para cada clase).
 activation_fn = None # Porque no hay una función de activación después de la capa de salida
@@ -193,10 +191,10 @@ num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model2 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
-del optimizer_fn, loss_fn"""
+del optimizer_fn, loss_fn
 
 # Modelo 3
-"""input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
 hidden_layers = [] # No hay capas ocultas
 output_size = 1 # La salida es la probabilidad de una de las clases
 activation_fn = nn.Sigmoid()
@@ -206,10 +204,10 @@ num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model3 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
-del optimizer_fn, loss_fn"""
+del optimizer_fn, loss_fn
 
 # Modelo 4
-"""input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
 hidden_layers = [16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
 output_size = 1  # La salida es la probabilidad de una de las clases
 activation_fn = nn.Sigmoid()
@@ -219,7 +217,20 @@ num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model4 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
-del optimizer_fn, loss_fn"""
+del optimizer_fn, loss_fn
 
-# del trained_model4 , trained_model3, trained_model4
+# Modelo 5.1
+input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+hidden_layers = [16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
+output_size = 1  # La salida es la probabilidad de una de las clases
+activation_fn = None
+loss_fn = nn.BCELoss()
+optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
+num_epochs = 100
+
+# Entrenar y evaluar el modelo
+trained_model51 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+del optimizer_fn, loss_fn
+
+del trained_model2, trained_model3, trained_model4
 torch.cuda.empty_cache()  # Si estás usando una GPU
