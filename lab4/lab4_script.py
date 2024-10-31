@@ -76,7 +76,7 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
     y_train_tensor = torch.tensor(target_train.values, dtype=torch.float32 if output_size == 1 else torch.long)
     X_val_tensor = torch.tensor(dataset_val_scaled, dtype=torch.float32)
     y_val_tensor = torch.tensor(target_val.values, dtype=torch.float32 if output_size == 1 else torch.long)
-    
+
     # Definir el modelo
     class CustomModel(nn.Module):
         def __init__(self):
@@ -154,7 +154,7 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
             train_accuracies.append(train_accuracy)
             val_accuracies.append(val_accuracy)
 
-        print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}, Training Accuracy: {train_accuracy:.4f}, Validation Accuracy: {val_accuracy:.4f}')
+    print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}, Training Accuracy: {train_accuracy:.4f}, Validation Accuracy: {val_accuracy:.4f}')
 
     # Graficar la pérdida y la accuracy
     plt.figure(figsize=(12, 5))
@@ -176,7 +176,7 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
 
     plt.tight_layout()
     plt.show()
-    
+
     return model
 
 # Paso 3: Ejemplo de uso para entrenar el modelo con múltiples capas ocultas
@@ -212,25 +212,65 @@ hidden_layers = [16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32]
 output_size = 1  # La salida es la probabilidad de una de las clases
 activation_fn = nn.Sigmoid()
 loss_fn = nn.BCELoss()
-optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
+optimizer_fn = lambda params: torch.optim.Adam(params, lr=0.01)
 num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model4 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
 del optimizer_fn, loss_fn
 
+learning_rates = [0.001, 0.01, 0.1]
+
 # Modelo 5.1
 input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
 hidden_layers = [16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
 output_size = 1  # La salida es la probabilidad de una de las clases
 activation_fn = None
-loss_fn = nn.BCELoss()
+loss_fn = nn.CrossEntropyLoss()
+optimizer_fn = lambda params: torch.optim.Adam(params, lr=0.01)
+num_epochs = 100
+
+for lr in learning_rates:
+    print("-------------------------------------------------------------------------------------------")
+    print(f"Entrenando modelo 5.1 con tasa de aprendizaje: {lr}")
+    optimizer_fn = lambda params: torch.optim.Adam(params, lr=lr)
+    trained_model51 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+
+del optimizer_fn, loss_fn
+
+# Modelo 5.2
+input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+hidden_layers = [16, 16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
+output_size = 2
+activation_fn = None
+loss_fn = nn.CrossEntropyLoss()
 optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
 num_epochs = 100
 
-# Entrenar y evaluar el modelo
-trained_model51 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+for lr in learning_rates:
+    print("-------------------------------------------------------------------------------------------")
+    print(f"Entrenando modelo 5.2 con tasa de aprendizaje: {lr}")
+    optimizer_fn = lambda params: torch.optim.SGD(params, lr=lr, momentum=0.9)
+    trained_model52 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+
 del optimizer_fn, loss_fn
 
-del trained_model2, trained_model3, trained_model4
+# Modelo 5.3
+input_size = dataset_train_scaled.shape[1]  # Número de características de entrada
+hidden_layers = []  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
+output_size = 2
+activation_fn = nn.Sigmoid()
+loss_fn = nn.CrossEntropyLoss()
+optimizer_fn = lambda params: torch.optim.SGD(params, lr=0.01, momentum=0.9)
+num_epochs = 100
+
+for lr in learning_rates:
+    print("-------------------------------------------------------------------------------------------")
+    print(f"Entrenando modelo 5.3 con tasa de aprendizaje: {lr}")
+    optimizer_fn = lambda params: torch.optim.SGD(params, lr=lr, momentum=0.9)
+    trained_model53 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+
+del optimizer_fn, loss_fn
+
+del trained_model2, trained_model3, trained_model4, trained_model51, trained_model52, trained_model53
 torch.cuda.empty_cache()  # Si estás usando una GPU
