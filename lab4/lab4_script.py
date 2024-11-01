@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 # from lab4 import *
 
@@ -48,6 +49,9 @@ scaler = StandardScaler()
 dataset_train_scaled = scaler.fit_transform(dataset_train)
 dataset_val_scaled = scaler.transform(dataset_val)
 
+dataset_train_full_scaled = scaler.fit_transform(dataset_train_full)
+dataset_test_scaled = scaler.transform(dataset_test)
+
 # Inicializar el modelo de regresión logística
 modelo_logistico = LogisticRegression(max_iter=1000, random_state=42)
 
@@ -70,12 +74,18 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 # Paso 2: Definir una función para crear y entrenar el modelo con múltiples capas ocultas
-def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs=100):
+def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs=100, full_evaluation = False):
     # Convertir los datos a tensores de PyTorch
-    X_train_tensor = torch.tensor(dataset_train_scaled, dtype=torch.float32)
-    y_train_tensor = torch.tensor(target_train.values, dtype=torch.float32 if output_size == 1 else torch.long)
-    X_val_tensor = torch.tensor(dataset_val_scaled, dtype=torch.float32)
-    y_val_tensor = torch.tensor(target_val.values, dtype=torch.float32 if output_size == 1 else torch.long)
+    if (full_evaluation):
+        X_train_tensor = torch.tensor(dataset_train_full_scaled, dtype=torch.float32)
+        y_train_tensor = torch.tensor(target_train_full.values, dtype=torch.float32 if output_size == 1 else torch.long)
+        X_val_tensor = torch.tensor(dataset_test_scaled, dtype=torch.float32)
+        y_val_tensor = torch.tensor(target_test.values, dtype=torch.float32 if output_size == 1 else torch.long)
+    else:
+        X_train_tensor = torch.tensor(dataset_train_scaled, dtype=torch.float32)
+        y_train_tensor = torch.tensor(target_train.values, dtype=torch.float32 if output_size == 1 else torch.long)
+        X_val_tensor = torch.tensor(dataset_val_scaled, dtype=torch.float32)
+        y_val_tensor = torch.tensor(target_val.values, dtype=torch.float32 if output_size == 1 else torch.long)
 
     # Definir el modelo
     class CustomModel(nn.Module):
@@ -133,7 +143,7 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
         loss.backward()
         optimizer.step()
 
-        # Evaluación en el conjunto de validación
+        # Evaluación en el conjunto de validación o de test
         model.eval()
         with torch.no_grad():
             train_loss = loss.item()
@@ -155,6 +165,9 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
             val_accuracies.append(val_accuracy)
 
     print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}, Training Accuracy: {train_accuracy:.4f}, Validation Accuracy: {val_accuracy:.4f}')
+
+    if (full_evaluation):
+        calculate_metrics(y_val_tensor.numpy(), val_predictions.numpy())
 
     # Graficar la pérdida y la accuracy
     plt.figure(figsize=(12, 5))
@@ -179,6 +192,19 @@ def train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, 
 
     return model
 
+def calculate_metrics(target, predictions):
+    print('---------------------------------------------------------------------------')
+    print('METRICAS recall, precision y F1')
+    accuracy_nn = accuracy_score(target, predictions)
+    precision_nn = precision_score(target, predictions)
+    recall_nn = recall_score(target, predictions)
+    f1_nn = f1_score(target, predictions)
+    print(f'Accuracy: {accuracy_nn}')
+    print(f'Precision: {precision_nn}')
+    print(f'Recall: {recall_nn}')
+    print(f'F1: {f1_nn}')
+    print('---------------------------------------------------------------------------')
+
 # Paso 3: Ejemplo de uso para entrenar el modelo con múltiples capas ocultas
 # Modelo 2
 input_size = dataset_train_scaled.shape[1] # Número de características de entrada
@@ -191,6 +217,7 @@ num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model2 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+trained_model2_full = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs, True)
 del optimizer_fn, loss_fn
 
 # Modelo 3
@@ -204,6 +231,7 @@ num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model3 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+trained_model3_full = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs, True)
 del optimizer_fn, loss_fn
 
 # Modelo 4
@@ -217,6 +245,7 @@ num_epochs = 100
 
 # Entrenar y evaluar el modelo
 trained_model4 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
+trained_model4_full = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs, True)
 del optimizer_fn, loss_fn
 
 learning_rates = [0.001, 0.01, 0.1]
@@ -270,7 +299,16 @@ for lr in learning_rates:
     optimizer_fn = lambda params: torch.optim.SGD(params, lr=lr, momentum=0.9)
     trained_model53 = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs)
 
+trained_model53_full = train_model(input_size, hidden_layers, output_size, activation_fn, loss_fn, optimizer_fn, num_epochs, True)
 del optimizer_fn, loss_fn
 
 del trained_model2, trained_model3, trained_model4, trained_model51, trained_model52, trained_model53
 torch.cuda.empty_cache()  # Si estás usando una GPU
+
+
+# Ultimo analisis para logistico:
+
+modelo_logistico = LogisticRegression(max_iter=1000, random_state=42)
+modelo_logistico.fit(dataset_train_full_scaled, target_train_full)
+predictions = modelo_logistico.predict(dataset_test_scaled)
+calculate_metrics(target_test, predictions)
