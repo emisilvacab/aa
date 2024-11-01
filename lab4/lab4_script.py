@@ -255,7 +255,7 @@ input_size = dataset_train_scaled.shape[1]  # Número de características de ent
 hidden_layers = [16]  # Aquí se puede agregar más capas, por ejemplo, [16, 32] para dos capas ocultas
 output_size = 1  # La salida es la probabilidad de una de las clases
 activation_fn = None
-loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.BCELoss()
 optimizer_fn = lambda params: torch.optim.Adam(params, lr=0.01)
 num_epochs = 100
 
